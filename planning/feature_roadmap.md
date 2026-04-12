@@ -21,8 +21,8 @@ All features follow these rules:
 |---------|----------|--------|--------------|
 | Navigation Bar | High | **Complete** | None |
 | About Me Page | Medium | **Complete** (placeholder) | None |
-| Art Details Page | High | Not started | None |
-| Art Category Filters | High | Not started | None |
+| Art Details Page | High | **Complete** | None |
+| Art Category Filters | High | **Complete** | None |
 | Image Protection | High | Not started | None |
 | Purchase Flow | Medium | Not started | Art Details, Stripe |
 | Admin CLI Tool | Medium | Not started | None |
@@ -33,7 +33,7 @@ All features follow these rules:
 ## Feature 1: Art Details Page
 
 **Priority:** High
-**Status:** Not started
+**Status:** Complete
 
 ### Description
 Clicking on an art piece opens a dedicated page with full details and purchase option.
@@ -82,17 +82,17 @@ ALTER TABLE art_tiles ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
 
 ### Tasks
 - [ ] Create migration for new columns
-- [ ] Add `GetArtByID` handler
-- [ ] Create ArtDetail.svelte component
-- [ ] Add SvelteKit route `/art/[id]`
-- [ ] Update ArtTile to link to detail page
+- [x] Add `GetArtByID` handler
+- [x] Create ArtDetail.svelte component
+- [x] Add SvelteKit route `/art/[id]`
+- [x] Update ArtTile to link to detail page
 
 ---
 
 ## Feature 2: Art Category Filters
 
 **Priority:** High
-**Status:** Not started
+**Status:** Complete
 
 ### Description
 Home page shows a curated list of pieces ordered by `display_order`. Clicking a category filter fetches pieces from the backend — no client-side filtering. The server does the work; only relevant pieces are sent to the frontend.
@@ -163,15 +163,15 @@ On category click, fetch `/api/v1/art?category=slug` and replace grid contents.
 ```
 
 ### Tasks
-- [ ] Add `TilesByCategory(slug string)` to `sql_resource.go`
-- [ ] Add `AllCategories()` to `sql_resource.go`
-- [ ] Update `GetArtTiles` handler to branch on `?category=` param
-- [ ] Add `GetCategories` handler
-- [ ] Add `GET /api/v1/categories` route
-- [ ] Add `Category` model to `art_model.go`
-- [ ] Refactor `ArtGrid.svelte` to accept tiles as a prop
-- [ ] Create `CategoryFilter.svelte`
-- [ ] Update `+page.svelte` to fetch and manage filter state
+- [x] Add `TilesByCategory(slug string)` to `sql_resource.go`
+- [x] Add `AllCategories()` to `sql_resource.go`
+- [x] Update `GetArtTiles` handler to branch on `?category=` param
+- [x] Add `GetCategories` handler
+- [x] Add `GET /api/v1/categories` route
+- [x] Add `Category` model to `art_model.go`
+- [x] Refactor `ArtGrid.svelte` to accept tiles as a prop
+- [x] Create `FilterSidebar.svelte` (collapsible sidebar)
+- [x] Update `+page.svelte` to fetch and manage filter state
 
 ---
 
@@ -522,13 +522,138 @@ ADDRESS_ENCRYPTION_KEY=32-byte-random-key
 
 ---
 
-## Feature 6: Admin CLI Tool
+## Feature 6: Admin Portal
 
 **Priority:** Medium
 **Status:** Not started
 
 ### Description
-Secure command-line tool for database administration. No web interface = minimal attack surface. Requires local machine + GCP credentials to use.
+A private web portal for managing art, orders, and content — usable by Hark and one partner. Zero admin code lives in the public frontend, keeping the public attack surface minimal.
+
+### Architecture: Separate Service
+
+```
+Public Site                    Admin Portal
+harkhorning.com                admin.harkhorning.com (or local only)
+     │                                │
+     ▼                                ▼
+Public Backend API             Protected Backend API
+/api/v1/*  (no auth)          /api/admin/* (JWT required)
+     │                                │
+     └──────────────┬─────────────────┘
+                    ▼
+               Cloud SQL
+```
+
+The admin portal is a **completely separate SvelteKit app** in `admin/` at the repo root. It talks to protected `/api/admin/*` routes on the same backend. The public frontend has no admin code, no admin routes, and no auth logic whatsoever.
+
+### Why Separate Service
+
+| Concern | Approach |
+|---------|----------|
+| Attack surface | Admin code never ships in public bundle |
+| Discoverability | Admin URL is not linked from public site |
+| Auth failure | Only affects admin, not public visitors |
+| Deployment | Can run locally only — no public exposure needed |
+
+### Authentication
+
+Two admin users (you and your partner). No database user table needed — credentials stored as environment variables:
+
+```
+ADMIN_USERNAME_1=hark
+ADMIN_PASSWORD_HASH_1=bcrypt_hash
+ADMIN_USERNAME_2=partner_name
+ADMIN_PASSWORD_HASH_2=bcrypt_hash
+```
+
+Login returns a short-lived JWT. All `/api/admin/*` routes verify the JWT via middleware. Tokens expire after 8 hours.
+
+### Deployment Options
+
+**Option A: Local only (lowest risk)**
+Run the admin app locally, point it at the production API. Never deployed publicly. Only accessible from your machine.
+
+**Option B: Private Cloud Run service**
+Deploy to a separate Cloud Run URL. Not linked anywhere public. Optionally restrict to specific IP addresses via Cloud Armor.
+
+Start with Option A. Promote to B when you need remote access.
+
+### Admin Capabilities
+
+**Art Management**
+- Add new art pieces (title, description, category, image URL, display order)
+- Edit existing pieces
+- Toggle availability
+- Reorder display
+
+**Category Management**
+- Add / rename / remove categories
+- Assign categories to pieces
+
+**Order Management** (after purchase flow is built)
+- View orders
+- Mark as shipped with tracking number
+- View decrypted shipping address
+
+### Backend Changes
+
+New route group with JWT middleware:
+```go
+admin := router.Group("/api/admin")
+admin.Use(handle.AdminAuthMiddleware)
+{
+    admin.POST("/login", handle.AdminLogin)
+    admin.GET("/art", handle.AdminListArt)
+    admin.POST("/art", handle.AdminCreateArt)
+    admin.PUT("/art/:id", handle.AdminUpdateArt)
+    admin.DELETE("/art/:id", handle.AdminDeleteArt)
+    admin.GET("/categories", handle.AdminListCategories)
+    admin.POST("/categories", handle.AdminCreateCategory)
+    admin.DELETE("/categories/:id", handle.AdminDeleteCategory)
+}
+```
+
+### Frontend Structure
+
+```
+admin/                        ← separate SvelteKit app
+├── src/
+│   ├── routes/
+│   │   ├── +layout.svelte   ← checks auth, redirects to /login if missing
+│   │   ├── login/
+│   │   │   └── +page.svelte
+│   │   ├── art/
+│   │   │   ├── +page.svelte       ← art list
+│   │   │   └── [id]/+page.svelte  ← edit form
+│   │   └── categories/
+│   │       └── +page.svelte
+├── package.json
+└── svelte.config.js
+```
+
+### Environment Variables
+
+```
+ADMIN_USERNAME_1=xxx
+ADMIN_PASSWORD_HASH_1=xxx  (bcrypt)
+ADMIN_USERNAME_2=xxx
+ADMIN_PASSWORD_HASH_2=xxx  (bcrypt)
+ADMIN_JWT_SECRET=32-byte-random-key
+ADMIN_TOKEN_EXPIRY=8h
+```
+
+### Tasks
+- [ ] Add JWT middleware to backend
+- [ ] Add `/api/admin/login` endpoint
+- [ ] Add admin art CRUD endpoints
+- [ ] Add admin category endpoints
+- [ ] Create `admin/` SvelteKit app
+- [ ] Build login page
+- [ ] Build art management UI
+- [ ] Build category management UI
+- [ ] Add layout auth guard (redirect to login if no token)
+- [ ] Test locally against dev backend
 
 ### Security Model
 

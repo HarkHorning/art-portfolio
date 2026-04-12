@@ -16,7 +16,7 @@
 
 <aside class:open class:closed={!open}>
     <div class="content">
-        <span class="label">Filter</span>
+        <span class="label">Mediums</span>
         <ul>
             <li>
                 <button

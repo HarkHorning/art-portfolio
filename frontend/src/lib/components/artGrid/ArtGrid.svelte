@@ -27,6 +27,7 @@
     .grid-area {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
+        grid-auto-flow: dense;
         gap: 1rem;
     }
 

@@ -42,8 +42,7 @@
 
 <div class="art-page">
     <div class="header">
-        <h1>I'm Hark,</h1>
-        <p>welcome to my portfolio</p>
+        <h2 class="page-header">My work:</h2>
     </div>
 
     <div class="content">
@@ -70,15 +69,8 @@
         width: 100%;
     }
 
-    .header h1 {
+    .page-header {
         font-weight: 400;
-        margin-bottom: 0.25rem;
-    }
-
-    .header p {
-        color: #666;
-        margin-top: 0;
-        margin-bottom: 2rem;
     }
 
     .content {

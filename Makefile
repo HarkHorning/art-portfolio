@@ -1,4 +1,4 @@
-.PHONY: local local-down local-logs cloudrun clean help
+.PHONY: local local-down local-logs local-detach db db-down dev clean cloudrun cloudrun-logs help
 
 # Default target
 help:
@@ -7,30 +7,52 @@ help:
 	@echo "=============================="
 	@echo ""
 	@echo "Local Development:"
-	@echo "  make local        - Run with Docker Compose"
-	@echo "  make local-down   - Stop containers"
-	@echo "  make local-logs   - View container logs"
-	@echo "  make clean        - Stop and remove all data"
+	@echo "  make local        - Build and run all containers"
+	@echo "  make local-down   - Stop all containers"
+	@echo "  make local-logs   - Tail container logs"
+	@echo "  make local-detach - Run all containers in background"
+	@echo ""
+	@echo "Native Development (backend runs on your machine):"
+	@echo "  make dev          - Start DB container, run backend natively"
+	@echo "  make db           - Start MySQL container only"
+	@echo "  make db-down      - Stop MySQL container"
 	@echo ""
 	@echo "Production (requires GCP setup):"
 	@echo "  make cloudrun     - Deploy to Google Cloud Run"
 	@echo ""
+	@echo "Cleanup:"
+	@echo "  make clean        - Stop all containers and wipe data volumes"
+	@echo ""
 
 # ==============================================================================
-# Local Development
+# Local Development (fully containerized)
 # ==============================================================================
 
 local:
-	docker compose -f deployment/docker/docker-compose.yml up --build
+	powershell -NoProfile -Command "docker compose -f deployment/docker/docker-compose.yml up --build"
 
 local-down:
-	docker compose -f deployment/docker/docker-compose.yml down
+	powershell -NoProfile -Command "docker compose -f deployment/docker/docker-compose.yml down"
 
 local-logs:
-	docker compose -f deployment/docker/docker-compose.yml logs -f
+	powershell -NoProfile -Command "docker compose -f deployment/docker/docker-compose.yml logs -f"
 
 local-detach:
-	docker compose -f deployment/docker/docker-compose.yml up --build -d
+	powershell -NoProfile -Command "docker compose -f deployment/docker/docker-compose.yml up --build -d"
+
+# ==============================================================================
+# Native Development (DB in Docker, backend runs on your machine)
+# ==============================================================================
+
+dev:
+	powershell -NoProfile -Command "docker compose -f deployment/docker/docker-compose.yml up -d --wait mysql"
+	powershell -NoProfile -Command "$$env:DB_PORT='3307'; $$env:DB_INIT_SCHEMA='true'; $$env:DB_SEED_DATA='true'; Set-Location backend; go run ./cmd/server"
+
+db:
+	powershell -NoProfile -Command "docker compose -f deployment/docker/docker-compose.yml up -d mysql"
+
+db-down:
+	powershell -NoProfile -Command "docker compose -f deployment/docker/docker-compose.yml stop mysql"
 
 # ==============================================================================
 # Google Cloud Run
@@ -38,15 +60,15 @@ local-detach:
 
 cloudrun:
 	@echo "Deploying to Cloud Run..."
-	@bash deployment/cloudrun/deploy.sh
+	powershell -NoProfile -Command "bash deployment/cloudrun/deploy.sh"
 
 cloudrun-logs:
-	gcloud run logs read backend --region us-central1 --limit 50
+	powershell -NoProfile -Command "gcloud run logs read backend --region us-central1 --limit 50"
 
 # ==============================================================================
 # Cleanup
 # ==============================================================================
 
 clean:
-	docker compose -f deployment/docker/docker-compose.yml down -v
+	powershell -NoProfile -Command "docker compose -f deployment/docker/docker-compose.yml down -v"
 	@echo "Cleaned up containers and volumes"

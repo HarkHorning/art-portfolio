@@ -222,12 +222,60 @@ router.Use(ratelimit.New(100, time.Minute))
 
 ---
 
-### 12. Admin Interface
+### 12. Admin Portal
+**Status:** Not started — see `feature_roadmap.md` Feature 6 for full plan
+
+---
+
+### 13. Page Titles & Meta Tags
 **Status:** Not started
 
-For adding/editing art without redeploying:
-- Simple admin routes with auth
-- Or separate admin frontend
+Add `<svelte:head>` to each page:
+```svelte
+<svelte:head>
+    <title>Hark Horning — Portfolio</title>
+    <meta name="description" content="..." />
+</svelte:head>
+```
+Affects SEO and browser tab labels. Each page needs its own title.
+
+Pages to update: `/`, `/about`, `/art/[id]`
+
+---
+
+### 14. Custom Error Page
+**Status:** Not started
+
+SvelteKit uses `+error.svelte` for unmatched routes and runtime errors.
+Currently shows a raw default. Should match site style.
+
+```
+frontend/src/routes/+error.svelte
+```
+
+---
+
+### 15. Open Graph Meta Tags
+**Status:** Not started
+
+Makes links look good when shared on social media:
+```svelte
+<meta property="og:title" content="Hark Horning" />
+<meta property="og:image" content="..." />
+<meta property="og:description" content="..." />
+```
+
+---
+
+### 16. Art Detail Back Button
+**Status:** Not started
+
+Currently "← Back" goes to `/` which loses filter state.
+Should use `history.back()` so the user returns to their filtered view.
+
+```svelte
+<button onclick={() => history.back()}>← Back</button>
+```
 
 ---
 
@@ -243,7 +291,9 @@ For adding/editing art without redeploying:
 | Frontend error handling | 2026-04-07 | Added loading/error states to ArtGrid |
 | Health check /ready endpoint | 2026-04-07 | Pings database to verify connectivity |
 | Migrations structure | 2026-04-08 | Created folder, initial schema SQL, README |
-| Makefile | 2026-04-08 | Local dev and cloudrun commands |
+| Makefile | 2026-04-08 | Local dev, cloudrun, and db-only commands |
+| Art Details Page | 2026-04-11 | `/art/[id]` route, backend endpoint, clickable tiles |
+| Category Filters | 2026-04-11 | Collapsible sidebar, backend filtering, `/api/v1/categories` |
 | Cloudrun env.template | 2026-04-08 | Template for GCP deployment config |
 | .gitignore updates | 2026-04-08 | Added cloudrun, cloudflare, credentials entries |
 | Cloud SQL connection handling | 2026-04-08 | Unix socket support for Cloud Run |

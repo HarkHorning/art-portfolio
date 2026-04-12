@@ -1,5 +1,6 @@
 <script lang="ts">
 	import Navbar from '$lib/components/navbar/Navbar.svelte';
+	import Footer from '$lib/components/footer/Footer.svelte';
 
 	let { children } = $props();
 </script>
@@ -12,6 +13,7 @@
 <main>
 	{@render children()}
 </main>
+<Footer />
 
 <style>
 	:global(body) {
