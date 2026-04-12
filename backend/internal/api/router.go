@@ -20,6 +20,7 @@ func Routes(db *sqlx.DB) *gin.Engine {
 		AllowCredentials: true,
 	}
 	router.Use(cors.New(config))
+	router.Use(RateLimiter())
 
 	sqlResource := repo.NewRepo(db)
 
