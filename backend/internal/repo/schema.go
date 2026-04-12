@@ -2,15 +2,15 @@ package repo
 
 import (
 	"fmt"
-	"log"
+	"log/slog"
 
 	"github.com/jmoiron/sqlx"
 )
 
-// This file is just for development when I spin up a bunch of different things.
-// Also, I want to keep any ideas for creating the db here for when I make a more perminant solution.
+// InitSchema creates the database tables if they don't exist.
+// For production, use migrations instead.
 func InitSchema(db *sqlx.DB) error {
-	log.Println("Initializing database schema...")
+	slog.Info("initializing database schema")
 
 	if err := createArtTilesTable(db); err != nil {
 		return err
@@ -22,7 +22,7 @@ func InitSchema(db *sqlx.DB) error {
 		return err
 	}
 
-	log.Println("Database schema initialized successfully")
+	slog.Info("database schema initialized")
 	return nil
 }
 
@@ -45,7 +45,7 @@ func createArtTilesTable(db *sqlx.DB) error {
 	if err != nil {
 		return fmt.Errorf("failed to create art_tiles table: %w", err)
 	}
-	log.Println("  - art_tiles table ready")
+	slog.Debug("table ready", "table", "art_tiles")
 	return nil
 }
 
@@ -61,11 +61,11 @@ func createCategoriesTable(db *sqlx.DB) error {
 	if err != nil {
 		return fmt.Errorf("failed to create categories table: %w", err)
 	}
-	log.Println("  - categories table ready")
+	slog.Debug("table ready", "table", "categories")
 	return nil
 }
 
-func createArtCategoriesTable(db *sqlx.DB) error { // Eventually add genre?
+func createArtCategoriesTable(db *sqlx.DB) error {
 	query := `
 		CREATE TABLE IF NOT EXISTS art_categories (
 			art_id INT NOT NULL,
@@ -79,12 +79,12 @@ func createArtCategoriesTable(db *sqlx.DB) error { // Eventually add genre?
 	if err != nil {
 		return fmt.Errorf("failed to create art_categories table: %w", err)
 	}
-	log.Println("  - art_categories table ready")
+	slog.Debug("table ready", "table", "art_categories")
 	return nil
 }
 
-func SeedDevData(db *sqlx.DB) error { // For development
-	log.Println("Seeding development data...")
+func SeedDevData(db *sqlx.DB) error {
+	slog.Info("seeding development data")
 
 	tables := []string{"art_categories", "art_tiles", "categories"}
 	for _, table := range tables {
@@ -108,24 +108,26 @@ func SeedDevData(db *sqlx.DB) error { // For development
 		return err
 	}
 
-	log.Println("Development data seeded successfully")
+	slog.Info("development data seeded")
 	return nil
 }
 
 func seedCategories(db *sqlx.DB) error {
 	query := `
 		INSERT INTO categories (name, slug) VALUES
+		('Oil', 'oil'),
+		('Acrylic', 'acrylic'),
 		('Watercolor', 'watercolor'),
-		('Oil Painting', 'oil'),
-		('Portrait', 'portrait'),
-		('Landscape', 'landscape'),
-		('Acrylic', 'acrylic')
+		('Pencil Drawing', 'pencil-drawing'),
+		('Mixed', 'mixed'),
+		('Pastel', 'pastel'),
+		('Misc', 'misc')
 	`
 	_, err := db.Exec(query)
 	if err != nil {
 		return fmt.Errorf("failed to seed categories: %w", err)
 	}
-	log.Println("  - categories seeded")
+	slog.Debug("seeded", "table", "categories")
 	return nil
 }
 
@@ -155,46 +157,41 @@ func seedArtTiles(db *sqlx.DB) error {
 	if err != nil {
 		return fmt.Errorf("failed to seed art_tiles: %w", err)
 	}
-	log.Println("  - art_tiles seeded")
+	slog.Debug("seeded", "table", "art_tiles")
 	return nil
 }
 
 func seedArtCategories(db *sqlx.DB) error {
 	query := `
 		INSERT INTO art_categories (art_id, category_id) VALUES
-		(1, 3),  -- Portrait -> Acrylic
-		(2, 2),  -- Landscape -> Acrylic
-		(2, 4),  -- Boat on Lake -> Acrylic
-		(3, 1),  -- Horse Watercolor -> Watercolor
-		(3, 3),  -- Horse Watercolor -> Portrait
-		(4, 2),  -- Evening Light -> Acrylic
-		(4, 4),  -- Evening Light -> Acrylic
-		(5, 5),  -- Study in Blue -> Acrylic
-		(6, 2),  -- Mountain Range -> Acrylic
-		(6, 4)   -- Mountain Range -> Acrylic
+		(1, 2),
+		(2, 1),
+		(3, 3),
+		(4, 1),
+		(5, 2),
+		(6, 3)
 	`
 	_, err := db.Exec(query)
 	if err != nil {
 		return fmt.Errorf("failed to seed art_categories: %w", err)
 	}
-	log.Println("  - art_categories seeded")
+	slog.Debug("seeded", "table", "art_categories")
 	return nil
 }
 
 // DropAllTables removes all portfolio tables. Use with caution!
 func DropAllTables(db *sqlx.DB) error {
-	log.Println("WARNING: Dropping all tables...")
+	slog.Warn("dropping all tables")
 
-	// Order matters - drop dependent tables first
 	tables := []string{"art_categories", "art_tiles", "categories"}
 	for _, table := range tables {
 		_, err := db.Exec(fmt.Sprintf("DROP TABLE IF EXISTS %s", table))
 		if err != nil {
 			return fmt.Errorf("failed to drop %s: %w", table, err)
 		}
-		log.Printf("  - dropped %s", table)
+		slog.Debug("dropped table", "table", table)
 	}
 
-	log.Println("All tables dropped")
+	slog.Info("all tables dropped")
 	return nil
 }

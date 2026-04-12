@@ -26,10 +26,13 @@ func Routes(db *sqlx.DB) *gin.Engine {
 	handle := NewHandler(*sqlResource)
 
 	router.GET("/health", handle.HealthCheck)
+	router.GET("/ready", handle.ReadyCheck)
 
 	v1 := router.Group("/api/v1")
 	{
 		v1.GET("/art", handle.GetArtTiles)
+		v1.GET("/art/:id", handle.GetArtByID)
+		v1.GET("/categories", handle.GetCategories)
 	}
 
 	return router

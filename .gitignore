@@ -9,8 +9,18 @@
 .env
 .env.*
 
+# Cloud Run
+deployment/cloudrun/.env
+
+# Cloudflare
+.cloudflared/
+
 # Kubernetes secrets
 *-secret.yaml
+
+# Service account keys
+*-key.json
+*-credentials.json
 
 # IDE
 .idea/

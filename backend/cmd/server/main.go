@@ -1,27 +1,37 @@
 package main
 
 import (
-	"log"
+	"log/slog"
+	"os"
 
 	"github.com/HarkHorning/portfolio-go-svelte-azure-k8/internal/api"
+	"github.com/HarkHorning/portfolio-go-svelte-azure-k8/internal/config"
 	"github.com/HarkHorning/portfolio-go-svelte-azure-k8/internal/repo"
 	_ "github.com/go-sql-driver/mysql"
 )
 
 func main() {
+	cfg := config.Load()
+	config.SetupLogging(cfg.Environment)
 
-	cfg := repo.EnvConfig()
-	cfg.InitSchema = true
-	cfg.SeedData = true
-	db, err := repo.DBConnect(cfg)
+	slog.Info("starting server",
+		"environment", cfg.Environment,
+		"port", cfg.Server.Port,
+	)
+
+	db, err := repo.DBConnect(cfg.Database)
 	if err != nil {
-		log.Fatalf("SERVER: Failed to connect to database: %v", err)
+		slog.Error("failed to connect to database", "error", err)
+		os.Exit(1)
 	}
 	defer db.Close()
+
+	slog.Info("connected to database", "host", cfg.Database.Host)
+
 	router := api.Routes(db)
 
-	log.Println("SERVER: Starting on :8080")
-	if err := router.Run(":8080"); err != nil {
-		log.Fatal("SERVER: Failed to start server:", err)
+	if err := router.Run(":" + cfg.Server.Port); err != nil {
+		slog.Error("server failed", "error", err)
+		os.Exit(1)
 	}
 }

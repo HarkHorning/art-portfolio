@@ -4,6 +4,22 @@ Future improvements for the portfolio project, organized by priority.
 
 ---
 
+## Local Development
+
+**To run locally (no cloud services needed):**
+```bash
+cd deployment/docker
+docker compose up --build
+```
+
+- Frontend: http://localhost:3000
+- Backend: http://localhost:8080
+- MySQL: localhost:3307
+
+**Note:** Images won't load locally because they're stored in cloud storage. This will be addressed in a future update with either local image storage or placeholder images.
+
+---
+
 ## Infrastructure Decisions
 
 ### Cloud Provider: Google Cloud Only
@@ -27,7 +43,7 @@ All production deployments share the same Cloud SQL instance. Data changes are v
 ## High Priority
 
 ### 1. Database Migrations
-**Status:** Not started
+**Status:** Structure created (migration files ready, not yet integrated into app)
 **Why:** Current `InitSchema`/`SeedData` runs on every startup. Can't modify schema without losing data.
 
 **Implementation:**
@@ -86,7 +102,7 @@ Changed `/api/` to `/api/v1/`:
 ---
 
 ### 4. Cloud SQL Connection Handling
-**Status:** Not started
+**Status:** Complete
 **Why:** Cloud Run uses Unix socket (`/cloudsql/...`), GKE uses TCP. App needs to handle both.
 
 **Implementation:**
@@ -108,7 +124,7 @@ func buildDSN(cfg Config) string {
 ## Medium Priority
 
 ### 5. Structured Logging
-**Status:** Not started
+**Status:** Complete
 
 Replace `fmt.Println` with Go's `log/slog`:
 
@@ -124,11 +140,11 @@ Benefits:
 ---
 
 ### 6. Health Check Endpoints
-**Status:** Partial (has `/health`, needs `/ready`)
+**Status:** Complete
 
 ```go
-GET /health  // Is server running? (already exists)
-GET /ready   // Is server ready? (DB connected, migrations run)
+GET /health  // Is server running?
+GET /ready   // Is server ready? (pings database)
 ```
 
 Cloud Run and GKE use these for traffic routing.
@@ -153,16 +169,12 @@ Replace Azure GitHub Actions with GCP:
 ---
 
 ### 8. Frontend Error Handling
-**Status:** Not started
+**Status:** Complete
 
-```typescript
-try {
-  const res = await fetch(`/api/v1/art`);
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  tiles = await res.json();
-} catch (e) {
-  error = "Failed to load art";
-}
+ArtGrid.svelte now handles:
+- Loading state
+- API errors
+- Empty results
 ```
 
 ---
@@ -170,7 +182,7 @@ try {
 ## Lower Priority
 
 ### 9. Environment Configuration
-**Status:** Not started
+**Status:** Complete
 
 Single config struct with environment detection:
 
@@ -226,6 +238,17 @@ For adding/editing art without redeploying:
 | API Versioning | 2026-04-03 | `/api/` → `/api/v1/` |
 | Remove exposed credentials | 2026-04-03 | Removed terraform.tfvars from git history |
 | Kubernetes secrets | 2026-04-03 | Moved passwords to K8s Secrets |
+| Navigation bar | 2026-04-05 | Created minimal navbar component |
+| About page (placeholder) | 2026-04-05 | Route created, needs content |
+| Frontend error handling | 2026-04-07 | Added loading/error states to ArtGrid |
+| Health check /ready endpoint | 2026-04-07 | Pings database to verify connectivity |
+| Migrations structure | 2026-04-08 | Created folder, initial schema SQL, README |
+| Makefile | 2026-04-08 | Local dev and cloudrun commands |
+| Cloudrun env.template | 2026-04-08 | Template for GCP deployment config |
+| .gitignore updates | 2026-04-08 | Added cloudrun, cloudflare, credentials entries |
+| Cloud SQL connection handling | 2026-04-08 | Unix socket support for Cloud Run |
+| Structured logging | 2026-04-08 | Replaced log with slog, JSON for cloud |
+| Environment configuration | 2026-04-08 | Unified config with auto-detection |
 
 ---
 
@@ -235,7 +258,7 @@ For adding/editing art without redeploying:
 - [ ] `deployment/terraform/*.tf` - Rewrite for GCP
 - [ ] `deployment/kubernetes/*.yaml` - Update image URLs to Artifact Registry
 - [ ] `.github/workflows/deploy.yaml` - Replace Azure auth with GCP auth
-- [ ] Backend config - Support Cloud SQL Unix socket
+- [x] Backend config - Support Cloud SQL Unix socket
 
 ### Files to Delete
 - [ ] Any Azure-specific configs

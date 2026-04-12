@@ -19,10 +19,11 @@ All features follow these rules:
 
 | Feature | Priority | Status | Dependencies |
 |---------|----------|--------|--------------|
+| Navigation Bar | High | **Complete** | None |
+| About Me Page | Medium | **Complete** (placeholder) | None |
 | Art Details Page | High | Not started | None |
 | Art Category Filters | High | Not started | None |
 | Image Protection | High | Not started | None |
-| About Me Page | Medium | Not started | None |
 | Purchase Flow | Medium | Not started | Art Details, Stripe |
 | Admin CLI Tool | Medium | Not started | None |
 | Order Tracking | Low | Not started | Purchase Flow |
@@ -94,53 +95,83 @@ ALTER TABLE art_tiles ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
 **Status:** Not started
 
 ### Description
-Filter art gallery by category (e.g., "Landscapes", "Portraits", "Abstract").
+Home page shows a curated list of pieces ordered by `display_order`. Clicking a category filter fetches pieces from the backend — no client-side filtering. The server does the work; only relevant pieces are sent to the frontend.
+
+### Categories
+| Name | Slug |
+|------|------|
+| Oil | oil |
+| Acrylic | acrylic |
+| Watercolor | watercolor |
+| Pencil Drawing | pencil-drawing |
+| Mixed | mixed |
+| Pastel | pastel |
+| Misc | misc |
 
 ### User Flow
 ```
-Art Grid → Click category filter → Grid updates to show only that category
-```
-
-### UI Components
-```
-ArtGallery.svelte
-├── CategoryFilter.svelte
-│   ├── "All" button
-│   ├── Category buttons (dynamic)
-│   └── Active state styling
-└── ArtGrid.svelte (filtered)
+Home page (curated list, no filter active)
+    ↓
+Click category button (e.g. "Watercolor")
+    ↓
+GET /api/v1/art?category=watercolor
+    ↓
+Grid replaces with filtered results
+    ↓
+Click "All" → back to curated list
 ```
 
 ### API Endpoints
 ```
-GET /api/v1/art?category=landscapes    - Filter by category
-GET /api/v1/categories                  - List all categories
+GET /api/v1/art                        - Curated home list (ordered by display_order)
+GET /api/v1/art?category=watercolor    - Backend-filtered by category slug
+GET /api/v1/categories                 - All categories, fetched on page load to build filter UI
 ```
 
-### Database Schema
-```sql
-CREATE TABLE categories (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    name VARCHAR(50) NOT NULL,
-    slug VARCHAR(50) NOT NULL UNIQUE
-);
+The handler branches on whether the `category` query param is present. Same endpoint, two SQL queries.
 
--- Art can have multiple categories (many-to-many)
-CREATE TABLE art_categories (
-    art_id INT REFERENCES art_tiles(id),
-    category_id INT REFERENCES categories(id),
-    PRIMARY KEY (art_id, category_id)
-);
+### Database Schema
+No changes needed. The schema already supports this:
+```
+art_tiles ──< art_categories >── categories
+```
+
+### Backend Changes
+- `sql_resource.go` — add `TilesByCategory(slug string)` query (JOIN through art_categories)
+- `sql_resource.go` — add `AllCategories()` query
+- `handler.go` — `GetArtTiles` reads optional `?category=` param and calls the right query
+- `handler.go` — add `GetCategories` handler
+- `router.go` — add `GET /api/v1/categories`
+- `art_model.go` — add `Category` model (`id`, `name`, `slug`)
+
+### Frontend Changes
+On page load, fetch both in parallel:
+- `/api/v1/art` → populate grid
+- `/api/v1/categories` → populate filter buttons
+
+On category click, fetch `/api/v1/art?category=slug` and replace grid contents.
+
+### UI Components
+```
++page.svelte
+├── CategoryFilter.svelte
+│   ├── "All" button (active by default)
+│   ├── Category buttons (dynamic from /api/v1/categories)
+│   └── Active state styling
+└── ArtGrid.svelte
+    └── Receives tiles as a prop (no internal fetch logic)
 ```
 
 ### Tasks
-- [ ] Create categories migration
-- [ ] Seed initial categories
-- [ ] Add category filter query param to GetArtTiles
-- [ ] Create GetCategories handler
-- [ ] Create CategoryFilter.svelte component
-- [ ] Update ArtGrid to accept filter prop
-- [ ] Add URL query param sync (?category=landscapes)
+- [ ] Add `TilesByCategory(slug string)` to `sql_resource.go`
+- [ ] Add `AllCategories()` to `sql_resource.go`
+- [ ] Update `GetArtTiles` handler to branch on `?category=` param
+- [ ] Add `GetCategories` handler
+- [ ] Add `GET /api/v1/categories` route
+- [ ] Add `Category` model to `art_model.go`
+- [ ] Refactor `ArtGrid.svelte` to accept tiles as a prop
+- [ ] Create `CategoryFilter.svelte`
+- [ ] Update `+page.svelte` to fetch and manage filter state
 
 ---
 
@@ -305,7 +336,7 @@ IMAGE_SIGNING_KEY=32-byte-random-key
 ## Feature 4: About Me Page
 
 **Priority:** Medium
-**Status:** Not started
+**Status:** Complete (placeholder content)
 
 ### Description
 Static page with bio, artist statement, and contact info.
@@ -315,7 +346,13 @@ Static page with bio, artist statement, and contact info.
 /about            - About page
 ```
 
-### Content Sections
+### What's Done
+- [x] Created `frontend/src/routes/about/+page.svelte`
+- [x] Added route to SvelteKit
+- [x] Created navigation bar with link to About page
+- [ ] Write actual content (currently placeholder)
+
+### Content to Add Later
 ```
 AboutPage.svelte
 ├── Profile photo
@@ -326,16 +363,10 @@ AboutPage.svelte
 └── Optional: Timeline/journey
 ```
 
-### Implementation
-- Pure frontend, no API needed
-- Content can be hardcoded or loaded from a markdown file
-- Consider making it editable via CMS later
-
-### Tasks
-- [ ] Create About.svelte page
-- [ ] Add route to SvelteKit
-- [ ] Write content
-- [ ] Add navigation link
+### Files Created
+- `frontend/src/routes/about/+page.svelte` - About page
+- `frontend/src/lib/components/navbar/Navbar.svelte` - Navigation bar
+- Updated `frontend/src/routes/+layout.svelte` - Added navbar to all pages
 
 ---
 
