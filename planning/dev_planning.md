@@ -6,17 +6,23 @@ Future improvements for the portfolio project, organized by priority.
 
 ## Local Development
 
-**To run locally (no cloud services needed):**
-```bash
-cd deployment/docker
-docker compose up --build
+**Fully containerized:**
+```
+make local
 ```
 
-- Frontend: http://localhost:3000
+**Native backend (faster iteration):**
+```
+make db       # start MySQL only
+make dev      # start MySQL + run backend natively
+```
+Then in a second terminal: `cd frontend && npm run dev`
+
+- Frontend: http://localhost:5173 (Vite dev server, proxies /api to backend)
 - Backend: http://localhost:8080
 - MySQL: localhost:3307
 
-**Note:** Images won't load locally because they're stored in cloud storage. This will be addressed in a future update with either local image storage or placeholder images.
+**Note:** Images served from `gs://hark-portfolio-images` (GCS, public). Seed data uses GCS URLs.
 
 ---
 
@@ -43,7 +49,7 @@ All production deployments share the same Cloud SQL instance. Data changes are v
 ## High Priority
 
 ### 1. Database Migrations
-**Status:** Structure created (migration files ready, not yet integrated into app)
+**Status:** Complete
 **Why:** Current `InitSchema`/`SeedData` runs on every startup. Can't modify schema without losing data.
 
 **Implementation:**
@@ -214,16 +220,14 @@ backend/
 ---
 
 ### 11. Rate Limiting
-**Status:** Not started
+**Status:** Complete
 
-```go
-router.Use(ratelimit.New(100, time.Minute))
-```
+Per-IP middleware using `golang.org/x/time/rate` (10 req/s, burst 20). Added to `backend/internal/api/middleware.go`, applied globally in `router.go`.
 
 ---
 
 ### 12. Admin Portal
-**Status:** Not started — see `feature_roadmap.md` Feature 6 for full plan
+**Status:** Not started — see `planning/admin-portal.md` for full plan (Bubble Tea TUI approach)
 
 ---
 
@@ -244,14 +248,9 @@ Pages to update: `/`, `/about`, `/art/[id]`
 ---
 
 ### 14. Custom Error Page
-**Status:** Not started
+**Status:** Complete
 
-SvelteKit uses `+error.svelte` for unmatched routes and runtime errors.
-Currently shows a raw default. Should match site style.
-
-```
-frontend/src/routes/+error.svelte
-```
+`frontend/src/routes/+error.svelte` — handles 404 and all other error codes. Matches site style with a back-to-gallery link.
 
 ---
 
@@ -292,8 +291,20 @@ Should use `history.back()` so the user returns to their filtered view.
 | Health check /ready endpoint | 2026-04-07 | Pings database to verify connectivity |
 | Migrations structure | 2026-04-08 | Created folder, initial schema SQL, README |
 | Makefile | 2026-04-08 | Local dev, cloudrun, and db-only commands |
+| Database migrations | 2026-04-12 | golang-migrate integrated, embedded SQL, replaces InitSchema |
+| Back button | 2026-04-12 | Uses `history.back()` to preserve filter state |
+| Category seed assignments | 2026-04-12 | All 6 seed pieces assigned correct categories |
+| GCS image storage | 2026-04-12 | Bucket created, images uploaded, seed data updated |
+| Custom 404 page | 2026-04-12 | `+error.svelte`, handles all error codes |
 | Art Details Page | 2026-04-11 | `/art/[id]` route, backend endpoint, clickable tiles |
 | Category Filters | 2026-04-11 | Collapsible sidebar, backend filtering, `/api/v1/categories` |
+| Rate Limiting | 2026-04-11 | Per-IP middleware, 10 req/s burst 20, `middleware.go` |
+| Footer | 2026-04-11 | Auto-updating year, copyright disclaimer |
+| About page content | 2026-04-11 | Amusing placeholder, dirt specialist, rock climbing downplayed |
+| Grid dense layout | 2026-04-11 | `grid-auto-flow: dense` eliminates empty spaces |
+| made_year / sold fields | 2026-04-11 | SMALLINT NULL + BOOLEAN on art_tiles, schema + seed updated |
+| Vite proxy | 2026-04-11 | `/api` proxied to `localhost:8080` for native dev workflow |
+| Makefile (Windows/PowerShell) | 2026-04-11 | All targets use PowerShell; `make dev`, `make db`, `make local` |
 | Cloudrun env.template | 2026-04-08 | Template for GCP deployment config |
 | .gitignore updates | 2026-04-08 | Added cloudrun, cloudflare, credentials entries |
 | Cloud SQL connection handling | 2026-04-08 | Unix socket support for Cloud Run |
@@ -316,8 +327,8 @@ Should use `history.back()` so the user returns to their filtered view.
 ### New Files to Create
 - [ ] `deployment/cloudrun/deploy.sh`
 - [ ] `deployment/cloudrun/.env` (from template, gitignored)
-- [ ] `Makefile`
-- [ ] `deployment/migrations/*.sql`
+- [x] `Makefile`
+- [x] `deployment/migrations/*.sql`
 
 ---
 

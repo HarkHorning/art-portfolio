@@ -20,12 +20,12 @@ All features follow these rules:
 | Feature | Priority | Status | Dependencies |
 |---------|----------|--------|--------------|
 | Navigation Bar | High | **Complete** | None |
-| About Me Page | Medium | **Complete** (placeholder) | None |
+| About Me Page | Medium | **Complete** | None |
 | Art Details Page | High | **Complete** | None |
 | Art Category Filters | High | **Complete** | None |
 | Image Protection | High | Not started | None |
 | Purchase Flow | Medium | Not started | Art Details, Stripe |
-| Admin CLI Tool | Medium | Not started | None |
+| Admin TUI (Bubble Tea) | Medium | Not started | None |
 | Order Tracking | Low | Not started | Purchase Flow |
 
 ---
@@ -321,7 +321,7 @@ IMAGE_SIGNING_KEY=32-byte-random-key
 - [ ] Create Cloud Storage buckets with proper permissions
 - [ ] Implement signed URL generation
 - [ ] Integrate Cloudflare Turnstile
-- [ ] Add rate limiting middleware
+- [x] Add rate limiting middleware
 - [ ] Create "View Full Resolution" flow in frontend
 - [ ] Add referrer/hotlink protection
 - [ ] Test with various scraping tools
@@ -336,7 +336,7 @@ IMAGE_SIGNING_KEY=32-byte-random-key
 ## Feature 4: About Me Page
 
 **Priority:** Medium
-**Status:** Complete (placeholder content)
+**Status:** Complete
 
 ### Description
 Static page with bio, artist statement, and contact info.
@@ -350,7 +350,7 @@ Static page with bio, artist statement, and contact info.
 - [x] Created `frontend/src/routes/about/+page.svelte`
 - [x] Added route to SvelteKit
 - [x] Created navigation bar with link to About page
-- [ ] Write actual content (currently placeholder)
+- [x] Written content (amusing placeholder: dirt specialist, artist, software engineer)
 
 ### Content to Add Later
 ```
@@ -522,150 +522,85 @@ ADDRESS_ENCRYPTION_KEY=32-byte-random-key
 
 ---
 
-## Feature 6: Admin Portal
+## Feature 6: Admin TUI (Bubble Tea)
 
 **Priority:** Medium
-**Status:** Not started
+**Status:** Not started — see `planning/admin-portal.md` for full plan
 
 ### Description
-A private web portal for managing art, orders, and content — usable by Hark and one partner. Zero admin code lives in the public frontend, keeping the public attack surface minimal.
+A terminal UI (TUI) for managing art, orders, and content — built with [Bubble Tea](https://github.com/charmbracelet/bubbletea). Lives in `cmd/admin/` in the same repo. Connects directly to the database (locally or via Cloud SQL proxy). No web interface, no exposed endpoints.
 
-### Architecture: Separate Service
-
-```
-Public Site                    Admin Portal
-harkhorning.com                admin.harkhorning.com (or local only)
-     │                                │
-     ▼                                ▼
-Public Backend API             Protected Backend API
-/api/v1/*  (no auth)          /api/admin/* (JWT required)
-     │                                │
-     └──────────────┬─────────────────┘
-                    ▼
-               Cloud SQL
-```
-
-The admin portal is a **completely separate SvelteKit app** in `admin/` at the repo root. It talks to protected `/api/admin/*` routes on the same backend. The public frontend has no admin code, no admin routes, and no auth logic whatsoever.
-
-### Why Separate Service
-
-| Concern | Approach |
-|---------|----------|
-| Attack surface | Admin code never ships in public bundle |
-| Discoverability | Admin URL is not linked from public site |
-| Auth failure | Only affects admin, not public visitors |
-| Deployment | Can run locally only — no public exposure needed |
-
-### Authentication
-
-Two admin users (you and your partner). No database user table needed — credentials stored as environment variables:
+### Architecture
 
 ```
-ADMIN_USERNAME_1=hark
-ADMIN_PASSWORD_HASH_1=bcrypt_hash
-ADMIN_USERNAME_2=partner_name
-ADMIN_PASSWORD_HASH_2=bcrypt_hash
+Your laptop
+    ↓
+cmd/admin (Go binary, Bubble Tea TUI)
+    ↓
+Direct DB connection (local) or Cloud SQL Proxy (production)
+    ↓
+MySQL / Cloud SQL
 ```
 
-Login returns a short-lived JWT. All `/api/admin/*` routes verify the JWT via middleware. Tokens expire after 8 hours.
+The TUI shares `internal/repo/` and `internal/config/` with the web server — no code duplication, no network layer to attack.
 
-### Deployment Options
+### Why TUI instead of Web Admin
 
-**Option A: Local only (lowest risk)**
-Run the admin app locally, point it at the production API. Never deployed publicly. Only accessible from your machine.
-
-**Option B: Private Cloud Run service**
-Deploy to a separate Cloud Run URL. Not linked anywhere public. Optionally restrict to specific IP addresses via Cloud Armor.
-
-Start with Option A. Promote to B when you need remote access.
+| Web Admin | Bubble Tea TUI |
+|-----------|----------------|
+| Needs auth system | Uses GCP IAM / local DB |
+| Exposed to internet | Runs on your machine only |
+| Can be brute forced | No endpoint to attack |
+| Session management | No sessions |
+| CSRF, XSS risks | No browser |
 
 ### Admin Capabilities
 
-**Art Management**
-- Add new art pieces (title, description, category, image URL, display order)
-- Edit existing pieces
-- Toggle availability
-- Reorder display
+**Art Management** — list, add, edit, delete pieces; set display order; toggle sold status  
+**Category Management** — add, rename, remove categories; assign to pieces  
+**Order Management** (after purchase flow) — view orders, mark shipped, view decrypted address
 
-**Category Management**
-- Add / rename / remove categories
-- Assign categories to pieces
-
-**Order Management** (after purchase flow is built)
-- View orders
-- Mark as shipped with tracking number
-- View decrypted shipping address
-
-### Backend Changes
-
-New route group with JWT middleware:
-```go
-admin := router.Group("/api/admin")
-admin.Use(handle.AdminAuthMiddleware)
-{
-    admin.POST("/login", handle.AdminLogin)
-    admin.GET("/art", handle.AdminListArt)
-    admin.POST("/art", handle.AdminCreateArt)
-    admin.PUT("/art/:id", handle.AdminUpdateArt)
-    admin.DELETE("/art/:id", handle.AdminDeleteArt)
-    admin.GET("/categories", handle.AdminListCategories)
-    admin.POST("/categories", handle.AdminCreateCategory)
-    admin.DELETE("/categories/:id", handle.AdminDeleteCategory)
-}
-```
-
-### Frontend Structure
+### Directory Structure
 
 ```
-admin/                        ← separate SvelteKit app
-├── src/
-│   ├── routes/
-│   │   ├── +layout.svelte   ← checks auth, redirects to /login if missing
-│   │   ├── login/
-│   │   │   └── +page.svelte
-│   │   ├── art/
-│   │   │   ├── +page.svelte       ← art list
-│   │   │   └── [id]/+page.svelte  ← edit form
-│   │   └── categories/
-│   │       └── +page.svelte
-├── package.json
-└── svelte.config.js
+cmd/
+├── server/main.go       ← existing web server
+└── admin/main.go        ← Bubble Tea TUI
+
+internal/
+└── tui/
+    ├── art.go
+    ├── categories.go
+    └── orders.go
 ```
 
-### Environment Variables
-
+### Dependencies
 ```
-ADMIN_USERNAME_1=xxx
-ADMIN_PASSWORD_HASH_1=xxx  (bcrypt)
-ADMIN_USERNAME_2=xxx
-ADMIN_PASSWORD_HASH_2=xxx  (bcrypt)
-ADMIN_JWT_SECRET=32-byte-random-key
-ADMIN_TOKEN_EXPIRY=8h
+github.com/charmbracelet/bubbletea
+github.com/charmbracelet/bubbles
+github.com/charmbracelet/lipgloss
 ```
 
 ### Tasks
-- [ ] Add JWT middleware to backend
-- [ ] Add `/api/admin/login` endpoint
-- [ ] Add admin art CRUD endpoints
-- [ ] Add admin category endpoints
-- [ ] Create `admin/` SvelteKit app
-- [ ] Build login page
-- [ ] Build art management UI
-- [ ] Build category management UI
-- [ ] Add layout auth guard (redirect to login if no token)
-- [ ] Test locally against dev backend
+- [ ] Set up `cmd/admin/main.go` entry point with Bubble Tea
+- [ ] Build art list view (table component)
+- [ ] Build art add/edit form
+- [ ] Build category management view
+- [ ] Wire up `make admin` and `make admin-build` in Makefile
+- [ ] Test locally against dev database
+- [ ] Document Cloud SQL Proxy setup for production use
 
 ### Security Model
 
 ```
-┌────────────────────────────────────────────────────���────────────┐
+┌─────────────────────────────────────────────────────────────────┐
 │                    ATTACK SURFACE: NEAR ZERO                     │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                  │
-│  To use admin CLI, attacker needs:                              │
+│  To use admin TUI, attacker needs:                              │
 │    1. Physical access to your machine (or SSH)                  │
-│    2. GCP credentials with Cloud SQL access                     │
-│    3. Knowledge that the CLI exists                             │
+│    2. Database credentials / GCP IAM access                     │
+│    3. Knowledge that the binary exists                          │
 │                                                                  │
 │  No web endpoint to attack                                       │
 │  No API to brute force                                          │

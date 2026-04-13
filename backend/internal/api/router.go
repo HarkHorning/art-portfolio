@@ -14,7 +14,7 @@ func Routes(db *sqlx.DB) *gin.Engine {
 
 	config := cors.Config{
 		AllowOrigins:     getAllowedOrigins(),
-		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"}, // come back to this later
+		AllowMethods:     []string{"GET", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,

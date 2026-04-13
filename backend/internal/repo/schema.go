@@ -7,82 +7,6 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-// InitSchema creates the database tables if they don't exist.
-// For production, use migrations instead.
-func InitSchema(db *sqlx.DB) error {
-	slog.Info("initializing database schema")
-
-	if err := createArtTilesTable(db); err != nil {
-		return err
-	}
-	if err := createCategoriesTable(db); err != nil {
-		return err
-	}
-	if err := createArtCategoriesTable(db); err != nil {
-		return err
-	}
-
-	slog.Info("database schema initialized")
-	return nil
-}
-
-func createArtTilesTable(db *sqlx.DB) error {
-	query := `
-		CREATE TABLE IF NOT EXISTS art_tiles (
-			id INT AUTO_INCREMENT PRIMARY KEY,
-			title VARCHAR(255) NOT NULL,
-			description TEXT,
-			portrait BOOLEAN NOT NULL DEFAULT FALSE,
-			url_low VARCHAR(512) NOT NULL,
-			url_high VARCHAR(512) NOT NULL,
-			display_order INT DEFAULT 0,
-			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-			INDEX idx_display_order (display_order)
-		)
-	`
-	_, err := db.Exec(query)
-	if err != nil {
-		return fmt.Errorf("failed to create art_tiles table: %w", err)
-	}
-	slog.Debug("table ready", "table", "art_tiles")
-	return nil
-}
-
-func createCategoriesTable(db *sqlx.DB) error {
-	query := `
-		CREATE TABLE IF NOT EXISTS categories (
-			id INT AUTO_INCREMENT PRIMARY KEY,
-			name VARCHAR(100) NOT NULL UNIQUE,
-			slug VARCHAR(100) NOT NULL UNIQUE
-		)
-	`
-	_, err := db.Exec(query)
-	if err != nil {
-		return fmt.Errorf("failed to create categories table: %w", err)
-	}
-	slog.Debug("table ready", "table", "categories")
-	return nil
-}
-
-func createArtCategoriesTable(db *sqlx.DB) error {
-	query := `
-		CREATE TABLE IF NOT EXISTS art_categories (
-			art_id INT NOT NULL,
-			category_id INT NOT NULL,
-			PRIMARY KEY (art_id, category_id),
-			FOREIGN KEY (art_id) REFERENCES art_tiles(id) ON DELETE CASCADE,
-			FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
-		)
-	`
-	_, err := db.Exec(query)
-	if err != nil {
-		return fmt.Errorf("failed to create art_categories table: %w", err)
-	}
-	slog.Debug("table ready", "table", "art_categories")
-	return nil
-}
-
 func SeedDevData(db *sqlx.DB) error {
 	slog.Info("seeding development data")
 
@@ -133,25 +57,25 @@ func seedCategories(db *sqlx.DB) error {
 
 func seedArtTiles(db *sqlx.DB) error {
 	query := `
-		INSERT INTO art_tiles (title, description, portrait, url_low, url_high, display_order) VALUES
-		('Woman with Flowers', 'Acrylic on canvas, 2024', TRUE,
-		 'https://harkportfoliostore.blob.core.windows.net/art-images/Woman With Flowers.jpeg',
-		 'https://harkportfoliostore.blob.core.windows.net/art-images/Woman With Flowers.jpeg', 1),
+		INSERT INTO art_tiles (title, description, portrait, url_low, url_high, display_order, made_year, sold) VALUES
+		('Woman with Flowers', 'Acrylic on canvas', TRUE,
+		 'https://storage.googleapis.com/hark-portfolio-images/art/Woman%20With%20Flowers.jpeg',
+		 'https://storage.googleapis.com/hark-portfolio-images/art/Woman%20With%20Flowers.jpeg', 1, 2024, FALSE),
 		('Boat on Lake', 'Oil on canvas, peaceful morning scene', FALSE,
-		 'https://harkportfoliostore.blob.core.windows.net/art-images/Boat on Lake.jpeg',
-		 'https://harkportfoliostore.blob.core.windows.net/art-images/Boat on Lake.jpeg', 2),
-		('Horse Watercolor', 'Watercolor', TRUE,
-		 'https://harkportfoliostore.blob.core.windows.net/art-images/Horse Statue.jpeg',
-		 'https://harkportfoliostore.blob.core.windows.net/art-images/Horse Statue.jpeg', 3),
+		 'https://storage.googleapis.com/hark-portfolio-images/art/Boat%20on%20Lake.jpeg',
+		 'https://storage.googleapis.com/hark-portfolio-images/art/Boat%20on%20Lake.jpeg', 2, 2023, FALSE),
+		('Horse Statue', 'Watercolor', TRUE,
+		 'https://storage.googleapis.com/hark-portfolio-images/art/Horse%20Statue.jpeg',
+		 'https://storage.googleapis.com/hark-portfolio-images/art/Horse%20Statue.jpeg', 3, 2023, FALSE),
+		('Cardinal', 'Watercolor', TRUE,
+		 'https://storage.googleapis.com/hark-portfolio-images/art/Cardinal.jpeg',
+		 'https://storage.googleapis.com/hark-portfolio-images/art/Cardinal.jpeg', 4, 2023, FALSE),
+		('Shoebill Stork', 'Watercolor', TRUE,
+		 'https://storage.googleapis.com/hark-portfolio-images/art/Shoebill.jpeg',
+		 'https://storage.googleapis.com/hark-portfolio-images/art/Shoebill.jpeg', 5, 2022, FALSE),
 		('Boat on Lake', 'Golden hour landscape', FALSE,
-		 'https://harkportfoliostore.blob.core.windows.net/art-images/Boat on Lake.jpeg',
-		 'https://harkportfoliostore.blob.core.windows.net/art-images/Boat on Lake.jpeg', 4),
-		('Woman with Flowers', 'Cubist Serialist something expressionism', TRUE,
-		 'https://harkportfoliostore.blob.core.windows.net/art-images/Woman With Flowers.jpeg',
-		 'https://harkportfoliostore.blob.core.windows.net/art-images/Woman With Flowers.jpeg', 5),
-		('Shoebill Stork Watercolor', 'Watercolor', TRUE,
-		 'https://harkportfoliostore.blob.core.windows.net/art-images/Shoebill.jpeg',
-		 'https://harkportfoliostore.blob.core.windows.net/art-images/Shoebill.jpeg', 6)
+		 'https://storage.googleapis.com/hark-portfolio-images/art/Boat%20on%20Lake.jpeg',
+		 'https://storage.googleapis.com/hark-portfolio-images/art/Boat%20on%20Lake.jpeg', 6, 2022, TRUE)
 	`
 	_, err := db.Exec(query)
 	if err != nil {
@@ -167,9 +91,9 @@ func seedArtCategories(db *sqlx.DB) error {
 		(1, 2),
 		(2, 1),
 		(3, 3),
-		(4, 1),
-		(5, 2),
-		(6, 3)
+		(4, 3),
+		(5, 3),
+		(6, 1)
 	`
 	_, err := db.Exec(query)
 	if err != nil {
@@ -179,19 +103,3 @@ func seedArtCategories(db *sqlx.DB) error {
 	return nil
 }
 
-// DropAllTables removes all portfolio tables. Use with caution!
-func DropAllTables(db *sqlx.DB) error {
-	slog.Warn("dropping all tables")
-
-	tables := []string{"art_categories", "art_tiles", "categories"}
-	for _, table := range tables {
-		_, err := db.Exec(fmt.Sprintf("DROP TABLE IF EXISTS %s", table))
-		if err != nil {
-			return fmt.Errorf("failed to drop %s: %w", table, err)
-		}
-		slog.Debug("dropped table", "table", table)
-	}
-
-	slog.Info("all tables dropped")
-	return nil
-}

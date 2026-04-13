@@ -1,6 +1,3 @@
--- Migration 000001: Initial Schema
--- Creates the core tables for the portfolio application
-
 CREATE TABLE IF NOT EXISTS art_tiles (
     id INT AUTO_INCREMENT PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
