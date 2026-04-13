@@ -19,6 +19,11 @@ func main() {
 		"port", cfg.Server.Port,
 	)
 
+	if err := repo.RunMigrations(cfg.Database); err != nil {
+		slog.Error("migrations failed", "error", err)
+		os.Exit(1)
+	}
+
 	db, err := repo.DBConnect(cfg.Database)
 	if err != nil {
 		slog.Error("failed to connect to database", "error", err)

@@ -46,7 +46,7 @@ local-detach:
 
 dev:
 	powershell -NoProfile -Command "docker compose -f deployment/docker/docker-compose.yml up -d --wait mysql"
-	powershell -NoProfile -Command "$$env:DB_PORT='3307'; $$env:DB_INIT_SCHEMA='true'; $$env:DB_SEED_DATA='true'; Set-Location backend; go run ./cmd/server"
+	powershell -NoProfile -Command "$$env:DB_PORT='3307'; $$env:DB_SEED_DATA='true'; Set-Location backend; go run ./cmd/server"
 
 db:
 	powershell -NoProfile -Command "docker compose -f deployment/docker/docker-compose.yml up -d mysql"

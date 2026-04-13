@@ -35,7 +35,7 @@
 </script>
 
 <div class="detail-page">
-    <a href="/" class="back">← Back</a>
+    <button onclick={() => history.back()} class="back">← Back</button>
 
     {#if loading}
         <p class="status">Loading...</p>
@@ -71,9 +71,13 @@
 
     .back {
         display: inline-block;
-        text-decoration: none;
+        background: none;
+        border: none;
+        padding: 0;
+        cursor: pointer;
         color: #888;
         font-size: 0.85rem;
+        font-family: inherit;
         margin-bottom: 2rem;
         transition: color 0.2s;
     }

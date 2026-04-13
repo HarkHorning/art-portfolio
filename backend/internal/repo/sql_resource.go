@@ -22,7 +22,7 @@ func (repo *Repo) Ping() error {
 func (repo *Repo) TopTiles(limit int) ([]models.ArtModel, error) {
 	artTiles := make([]models.ArtModel, 0)
 	query := `
-		SELECT id, title, description, portrait, url_low
+		SELECT id, title, description, portrait, url_low, made_year, sold
 		FROM art_tiles
 		ORDER BY display_order ASC, id ASC
 		LIMIT ?
@@ -36,27 +36,10 @@ func (repo *Repo) TopTiles(limit int) ([]models.ArtModel, error) {
 	return artTiles, nil
 }
 
-func (repo *Repo) ListMoreTiles(limit, offset int) ([]models.ArtModel, error) {
-	artTiles := make([]models.ArtModel, 0)
-	query := `
-		SELECT id, title, description, portrait, url_low
-		FROM art_tiles
-		ORDER BY display_order ASC, id ASC
-		LIMIT ? OFFSET ?
-	`
-
-	err := repo.db.Select(&artTiles, query, limit, offset)
-	if err != nil {
-		return nil, fmt.Errorf("SERVER: Could not list more art tiles: %w", err)
-	}
-
-	return artTiles, nil
-}
-
 func (repo *Repo) TilesByCategory(slug string) ([]models.ArtModel, error) {
 	artTiles := make([]models.ArtModel, 0)
 	query := `
-		SELECT at.id, at.title, at.description, at.portrait, at.url_low
+		SELECT at.id, at.title, at.description, at.portrait, at.url_low, at.made_year, at.sold
 		FROM art_tiles at
 		JOIN art_categories ac ON at.id = ac.art_id
 		JOIN categories c ON ac.category_id = c.id
@@ -75,7 +58,7 @@ func (repo *Repo) TilesByCategory(slug string) ([]models.ArtModel, error) {
 func (repo *Repo) ArtByID(id int) (*models.ArtDetailModel, error) {
 	var art models.ArtModel
 	err := repo.db.Get(&art, `
-		SELECT id, title, description, portrait, url_low
+		SELECT id, title, description, portrait, url_low, made_year, sold
 		FROM art_tiles
 		WHERE id = ?
 	`, id)
@@ -101,6 +84,8 @@ func (repo *Repo) ArtByID(id int) (*models.ArtDetailModel, error) {
 		Description: art.Description,
 		Portrait:    art.Portrait,
 		URL:         art.URL,
+		MadeYear:    art.MadeYear,
+		Sold:        art.Sold,
 		Categories:  categories,
 	}, nil
 }

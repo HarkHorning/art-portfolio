@@ -19,7 +19,6 @@ services:
       - DB_USER=root
       - DB_PASSWORD=devpassword
       - DB_NAME=portfolio
-      - DB_INIT_SCHEMA=true
       - DB_SEED_DATA=true
     depends_on:
       mysql:

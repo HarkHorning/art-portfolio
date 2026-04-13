@@ -42,11 +42,6 @@ func DBConnect(cfg config.DatabaseConfig) (*sqlx.DB, error) {
 		return nil, fmt.Errorf("failed to ping database: %w", err)
 	}
 
-	if cfg.InitSchema {
-		if err := InitSchema(db); err != nil {
-			return nil, fmt.Errorf("failed to init schema: %w", err)
-		}
-	}
 	if cfg.SeedData {
 		if err := SeedDevData(db); err != nil {
 			return nil, fmt.Errorf("failed to seed data: %w", err)

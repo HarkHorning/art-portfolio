@@ -34,8 +34,7 @@ type DatabaseConfig struct {
 	MaxOpenConns    int
 	MaxIdleConns    int
 	ConnMaxLifetime time.Duration
-	InitSchema      bool
-	SeedData        bool
+	SeedData bool
 }
 
 func Load() Config {
@@ -55,8 +54,7 @@ func Load() Config {
 			MaxOpenConns:    getEnvInt("DB_MAX_OPEN_CONNS", 25),
 			MaxIdleConns:    getEnvInt("DB_MAX_IDLE_CONNS", 5),
 			ConnMaxLifetime: getEnvDuration("DB_CONN_MAX_LIFETIME", 5*time.Minute),
-			InitSchema:      getEnvBool("DB_INIT_SCHEMA", false),
-			SeedData:        getEnvBool("DB_SEED_DATA", false),
+			SeedData: getEnvBool("DB_SEED_DATA", false),
 		},
 	}
 
