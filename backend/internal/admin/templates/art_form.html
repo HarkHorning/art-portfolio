@@ -1,0 +1,100 @@
+{{define "content"}}
+<div class="page-actions">
+  <h1>{{if .Art}}Edit Artwork{{else}}New Artwork{{end}}</h1>
+  <a href="/admin/art" class="btn">← Back</a>
+</div>
+
+{{if .Error}}<div class="error-msg">{{.Error}}</div>{{end}}
+
+<div style="display:flex;gap:2rem;align-items:flex-start;">
+<form method="POST" action="{{.Action}}" class="form-card" style="flex:1;">
+  <div class="field">
+    <label>Title *</label>
+    <input type="text" name="title" value="{{if .Art}}{{.Art.Title}}{{end}}" required>
+  </div>
+  <div class="field">
+    <label>Description</label>
+    <textarea name="description">{{if .Art}}{{.Art.Description}}{{end}}</textarea>
+  </div>
+  <div class="field-row">
+    <div class="field">
+      <label>Orientation</label>
+      <select name="portrait">
+        <option value="true"  {{if and .Art .Art.Portrait}}selected{{end}}>Portrait</option>
+        <option value="false" {{if and .Art (not .Art.Portrait)}}selected{{end}}>Landscape</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Year Made</label>
+      <input type="number" name="made_year" value="{{if and .Art .Art.MadeYear}}{{derefInt .Art.MadeYear}}{{end}}" placeholder="e.g. 2024">
+    </div>
+  </div>
+  <div class="field-row">
+    <div class="field">
+      <label>Size</label>
+      <input type="text" name="size" value="{{if and .Art .Art.Size}}{{deref .Art.Size}}{{end}}" placeholder="e.g. 16x20">
+    </div>
+    <div class="field">
+      <label>Price (cents)</label>
+      <input type="number" name="price_cents" value="{{if and .Art .Art.PriceCents}}{{derefInt .Art.PriceCents}}{{end}}" placeholder="e.g. 25000">
+    </div>
+  </div>
+  <div class="field">
+    <label>Display Order</label>
+    <input type="number" name="display_order" value="0">
+  </div>
+  {{if .Art}}
+  <div class="field">
+    <label>Sold</label>
+    <select name="sold">
+      <option value="false" {{if not .Art.Sold}}selected{{end}}>No</option>
+      <option value="true"  {{if .Art.Sold}}selected{{end}}>Yes</option>
+    </select>
+  </div>
+  {{end}}
+  <div class="field">
+    <label>Categories</label>
+    {{range .Categories}}
+    <div class="checkbox-row">
+      <input type="checkbox" name="category_ids" value="{{.Id}}"
+        {{if and $.Art (hasCategory $.Art.Categories .Id)}}checked{{end}}>
+      <span>{{.Name}}</span>
+    </div>
+    {{end}}
+  </div>
+  <button type="submit" class="btn btn-primary">{{if .Art}}Save Changes{{else}}Create Artwork{{end}}</button>
+</form>
+
+{{if .Art}}
+<div style="flex:1;max-width:380px;">
+  <div class="form-card">
+    <h2>Images</h2>
+    <div id="image-list">
+      {{template "image_list_inner" .}}
+    </div>
+    <div style="margin-top:1.5rem;">
+      <h2>Upload Image</h2>
+      <form hx-post="/admin/art/{{.Art.Id}}/images"
+            hx-target="#image-list"
+            hx-swap="innerHTML"
+            hx-encoding="multipart/form-data"
+            style="margin-top:0.5rem;">
+        <div class="field">
+          <label>Variant</label>
+          <select name="variant">
+            <option value="low">Low quality (display)</option>
+            <option value="high">High quality (original)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>File (JPEG, PNG, WebP — max 20 MB)</label>
+          <input type="file" name="image" accept="image/jpeg,image/png,image/webp" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Upload</button>
+      </form>
+    </div>
+  </div>
+</div>
+{{end}}
+</div>
+{{end}}

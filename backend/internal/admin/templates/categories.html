@@ -1,0 +1,51 @@
+{{define "content"}}
+<div class="page-actions">
+  <h1>Categories</h1>
+</div>
+
+{{if .Error}}<div class="error-msg">{{.Error}}</div>{{end}}
+
+<div style="display:flex;gap:2rem;align-items:flex-start;">
+<table style="flex:1;max-width:500px;">
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Slug</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+  {{range .Categories}}
+  <tr>
+    <td>{{.Name}}</td>
+    <td><code style="font-size:0.8rem;background:#f5f5f5;padding:0.1rem 0.3rem;border-radius:3px;">{{.Slug}}</code></td>
+    <td>
+      <form method="POST" action="/admin/categories/{{.Id}}/delete" style="display:inline;"
+            onsubmit="return confirm('Delete category {{.Name}}? This cannot be undone.')">
+        <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+      </form>
+    </td>
+  </tr>
+  {{else}}
+  <tr><td colspan="3" style="text-align:center;color:#888;padding:2rem;">No categories yet.</td></tr>
+  {{end}}
+  </tbody>
+</table>
+
+<div class="form-card" style="min-width:280px;">
+  <h2>Add Category</h2>
+  <form method="POST" action="/admin/categories" style="margin-top:0.75rem;">
+    <div class="field">
+      <label>Name</label>
+      <input type="text" name="name" placeholder="e.g. Pastel" required>
+    </div>
+    <div class="field">
+      <label>Slug</label>
+      <input type="text" name="slug" placeholder="e.g. pastel" required
+             pattern="[a-z0-9\-]+" title="Lowercase letters, numbers, and hyphens only">
+    </div>
+    <button type="submit" class="btn btn-primary">Add</button>
+  </form>
+</div>
+</div>
+{{end}}

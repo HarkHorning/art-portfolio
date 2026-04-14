@@ -4,6 +4,8 @@ services:
       context: ../../frontend
     ports:
       - "3000:3000"
+    environment:
+      - BACKEND_URL=http://backend:8080
     depends_on:
       - backend
 
@@ -20,6 +22,10 @@ services:
       - DB_PASSWORD=devpassword
       - DB_NAME=portfolio
       - DB_SEED_DATA=true
+      - ADMIN_USERNAME=admin
+      - ADMIN_PASSWORD=devpassword
+      - ADMIN_SESSION_SECRET=dev-session-secret-change-in-prod
+      - GCS_BUCKET=hark-portfolio-images
     depends_on:
       mysql:
         condition: service_healthy

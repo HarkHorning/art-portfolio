@@ -19,6 +19,18 @@ type Config struct {
 	Environment Environment
 	Server      ServerConfig
 	Database    DatabaseConfig
+	Admin       AdminConfig
+	Storage     StorageConfig
+}
+
+type AdminConfig struct {
+	Username      string
+	Password      string
+	SessionSecret string
+}
+
+type StorageConfig struct {
+	Bucket string
 }
 
 type ServerConfig struct {
@@ -56,6 +68,16 @@ func Load() Config {
 			ConnMaxLifetime: getEnvDuration("DB_CONN_MAX_LIFETIME", 5*time.Minute),
 			SeedData: getEnvBool("DB_SEED_DATA", false),
 		},
+	}
+
+	cfg.Admin = AdminConfig{
+		Username:      getEnv("ADMIN_USERNAME", "admin"),
+		Password:      getEnv("ADMIN_PASSWORD", ""),
+		SessionSecret: getEnv("ADMIN_SESSION_SECRET", "change-me-in-production"),
+	}
+
+	cfg.Storage = StorageConfig{
+		Bucket: getEnv("GCS_BUCKET", "hark-portfolio-images"),
 	}
 
 	return cfg

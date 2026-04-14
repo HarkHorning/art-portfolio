@@ -5,6 +5,7 @@
 <nav>
     <a href="/" class="site-title">Hark Horning</a>
     <div class="links">
+        <a href="/prints" class:active={$page.url.pathname.startsWith('/prints')}>Prints</a>
         <a href="/" class:active={$page.url.pathname === '/'}>Work</a>
         <a href="/about" class:active={$page.url.pathname === '/about'}>About</a>
     </div>

@@ -1,0 +1,47 @@
+{{define "content"}}
+<div class="page-actions">
+  <h1>Artwork</h1>
+  <a href="/admin/art/new" class="btn btn-primary">+ Add Artwork</a>
+</div>
+
+{{if .Error}}<div class="error-msg">{{.Error}}</div>{{end}}
+
+<table>
+  <thead>
+    <tr>
+      <th>Image</th>
+      <th>Title</th>
+      <th>Categories</th>
+      <th>Size</th>
+      <th>Price</th>
+      <th>Status</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+  {{range .Arts}}
+  <tr>
+    <td>
+      {{range .Images}}{{if and (eq .Variant "low") (eq .SortOrder 0)}}
+        <img src="{{.URL}}" style="width:60px;height:60px;object-fit:cover;border-radius:3px;">
+      {{end}}{{end}}
+    </td>
+    <td><strong>{{.Title}}</strong><br><span style="color:#888;font-size:0.8rem;">{{.Description}}</span></td>
+    <td>{{range .Categories}}<span class="tag">{{.Name}}</span>{{end}}</td>
+    <td>{{if .Size}}{{deref .Size}}{{else}}&mdash;{{end}}</td>
+    <td>{{if .PriceCents}}{{dollars (derefInt .PriceCents)}}{{else}}&mdash;{{end}}</td>
+    <td>{{if .Sold}}<span class="tag sold-badge">Sold</span>{{else}}&mdash;{{end}}</td>
+    <td style="white-space:nowrap;">
+      <a href="/admin/art/{{.Id}}/edit" class="btn btn-sm">Edit</a>
+      <form method="POST" action="/admin/art/{{.Id}}/archive" style="display:inline;"
+            onsubmit="return confirm('Archive this artwork?')">
+        <button type="submit" class="btn btn-sm btn-danger">Archive</button>
+      </form>
+    </td>
+  </tr>
+  {{else}}
+  <tr><td colspan="7" style="text-align:center;color:#888;padding:2rem;">No artwork yet.</td></tr>
+  {{end}}
+  </tbody>
+</table>
+{{end}}

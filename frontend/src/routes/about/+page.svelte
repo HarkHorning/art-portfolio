@@ -1,3 +1,7 @@
+<svelte:head>
+    <title>Hark Horning — About</title>
+</svelte:head>
+
 <div class="about-page">
     <h1>About Me</h1>
 

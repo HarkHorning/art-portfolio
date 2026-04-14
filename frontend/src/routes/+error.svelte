@@ -2,6 +2,10 @@
     import { page } from '$app/stores';
 </script>
 
+<svelte:head>
+    <title>{$page.status} — Hark Horning</title>
+</svelte:head>
+
 <div class="error-page">
     <h1 class="code">{$page.status}</h1>
 
