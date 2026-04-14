@@ -1,9 +1,9 @@
 <script lang="ts">
-    import ArtTile from "$lib/components/artTile/ArtTile.svelte";
-    import type { ArtTileInter } from "../artTile/ArtTileInterface";
+    import PrintTile from '$lib/components/printTile/PrintTile.svelte';
+    import type { PrintTileInter } from '$lib/components/printTile/PrintTileInterface';
 
-    let { tiles, loading, error }: {
-        tiles: ArtTileInter[];
+    let { prints, loading, error }: {
+        prints: PrintTileInter[];
         loading: boolean;
         error: string | null;
     } = $props();
@@ -13,12 +13,21 @@
     <p class="status">Loading...</p>
 {:else if error}
     <p class="status error">{error}</p>
-{:else if tiles.length === 0}
-    <p class="status">No artwork to display.</p>
+{:else if prints.length === 0}
+    <p class="status">No prints available.</p>
 {:else}
     <div class="grid-area">
-        {#each tiles as tile (tile.id)}
-            <ArtTile id={tile.id} title={tile.title} url={tile.url} portrait={tile.portrait} />
+        {#each prints as print (print.id)}
+            <PrintTile
+                id={print.id}
+                title={print.title}
+                url={print.url}
+                portrait={print.portrait}
+                price_cents={print.price_cents}
+                size={print.size}
+                sold={print.sold}
+                quantity_in_stock={print.quantity_in_stock}
+            />
         {/each}
     </div>
 {/if}

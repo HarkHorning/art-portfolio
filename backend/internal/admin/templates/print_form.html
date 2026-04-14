@@ -1,0 +1,49 @@
+{{define "content"}}
+<div class="page-actions">
+  <h1>{{if .Print}}Edit Print{{else}}New Print{{end}}</h1>
+  <a href="/admin/prints" class="btn">← Back</a>
+</div>
+
+{{if .Error}}<div class="error-msg">{{.Error}}</div>{{end}}
+
+<form method="POST" action="{{.Action}}" class="form-card">
+  <div class="field">
+    <label>Artwork *</label>
+    <select name="art_tile_id" {{if .Print}}disabled{{end}}>
+      <option value="">— Select artwork —</option>
+      {{range .Arts}}
+      <option value="{{.Id}}" {{if and $.Print (eq $.Print.ArtTileId .Id)}}selected{{end}}>
+        {{.Title}}
+      </option>
+      {{end}}
+    </select>
+    {{if .Print}}<input type="hidden" name="art_tile_id" value="{{.Print.ArtTileId}}">{{end}}
+  </div>
+  <div class="field-row">
+    <div class="field">
+      <label>Size *</label>
+      <input type="text" name="size" value="{{if .Print}}{{.Print.Size}}{{end}}" placeholder="e.g. 8x10" required>
+    </div>
+    <div class="field">
+      <label>Price (cents) *</label>
+      <input type="number" name="price_cents" value="{{if .Print}}{{.Print.PriceCents}}{{end}}" placeholder="e.g. 4500" required>
+    </div>
+  </div>
+  <div class="field-row">
+    <div class="field">
+      <label>Quantity in Stock</label>
+      <input type="number" name="quantity_in_stock" value="{{if .Print}}{{.Print.QuantityInStock}}{{else}}0{{end}}" min="0">
+    </div>
+    {{if .Print}}
+    <div class="field">
+      <label>Sold</label>
+      <select name="sold">
+        <option value="false" {{if not .Print.Sold}}selected{{end}}>No</option>
+        <option value="true"  {{if .Print.Sold}}selected{{end}}>Yes</option>
+      </select>
+    </div>
+    {{end}}
+  </div>
+  <button type="submit" class="btn btn-primary">{{if .Print}}Save Changes{{else}}Create Print{{end}}</button>
+</form>
+{{end}}

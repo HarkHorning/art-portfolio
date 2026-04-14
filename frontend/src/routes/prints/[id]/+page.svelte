@@ -1,24 +1,19 @@
 <script lang="ts">
     import { page } from '$app/stores';
-    import type { CategoryInter } from '$lib/components/filterSidebar/CategoryInterface';
 
-    interface ArtDetail {
+    interface PrintDetail {
         id: number;
         title: string;
         description: string;
         portrait: boolean;
         url: string;
-        categories: CategoryInter[];
-        size?: string;
-        price_cents?: number;
+        price_cents: number;
+        size: string;
         sold: boolean;
+        quantity_in_stock: number;
     }
 
-    function formatPrice(cents: number): string {
-        return `$${(cents / 100).toFixed(0)}`;
-    }
-
-    let art: ArtDetail | null = $state(null);
+    let print: PrintDetail | null = $state(null);
     let loading = $state(true);
     let error: string | null = $state(null);
 
@@ -29,20 +24,24 @@
 
         (async () => {
             try {
-                const res = await fetch(`/api/v1/art/${id}`);
+                const res = await fetch(`/api/v1/prints/${id}`);
                 if (!res.ok) throw new Error();
-                art = await res.json();
+                print = await res.json();
             } catch {
-                error = 'Could not load this piece.';
+                error = 'Could not load this print.';
             } finally {
                 loading = false;
             }
         })();
     });
+
+    function formatPrice(cents: number): string {
+        return `$${(cents / 100).toFixed(0)}`;
+    }
 </script>
 
 <svelte:head>
-    <title>{art ? `${art.title} — Hark Horning` : 'Hark Horning'}</title>
+    <title>{print ? `${print.title} — Hark Horning` : 'Hark Horning'}</title>
 </svelte:head>
 
 <div class="detail-page">
@@ -52,32 +51,26 @@
         <p class="status">Loading...</p>
     {:else if error}
         <p class="status error">{error}</p>
-    {:else if art}
-        <div class="detail" class:portrait={art.portrait} class:landscape={!art.portrait}>
+    {:else if print}
+        <div class="detail" class:portrait={print.portrait} class:landscape={!print.portrait}>
             <div class="image-wrap">
-                <img src={art.url} alt={art.title} />
+                <img src={print.url} alt={print.title} />
             </div>
             <div class="info">
-                <h1>{art.title}</h1>
-                {#if art.categories.length > 0}
-                    <div class="categories">
-                        {#each art.categories as cat (cat.id)}
-                            <span class="tag">{cat.name}</span>
-                        {/each}
-                    </div>
-                {/if}
-                {#if art.size || art.price_cents != null}
-                    <div class="art-meta">
-                        {#if art.size}<span class="size">{art.size}"</span>{/if}
-                        {#if art.sold}
-                            <span class="sold">Sold</span>
-                        {:else if art.price_cents != null}
-                            <span class="price">{formatPrice(art.price_cents)}</span>
-                        {/if}
-                    </div>
-                {/if}
-                {#if art.description}
-                    <p class="description">{art.description}</p>
+                <h1>{print.title}</h1>
+                <div class="print-meta">
+                    <span class="size">{print.size}"</span>
+                    {#if print.sold}
+                        <span class="sold">Sold</span>
+                    {:else if print.quantity_in_stock === 0}
+                        <span class="sold">Out of stock</span>
+                    {:else}
+                        <span class="price">{formatPrice(print.price_cents)}</span>
+                        <span class="stock">({print.quantity_in_stock} in stock)</span>
+                    {/if}
+                </div>
+                {#if print.description}
+                    <p class="description">{print.description}</p>
                 {/if}
             </div>
         </div>
@@ -107,7 +100,6 @@
         color: #000;
     }
 
-    /* Two-column layout for portrait pieces */
     .detail.portrait {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -115,7 +107,6 @@
         align-items: start;
     }
 
-    /* Single column for landscape pieces */
     .detail.landscape {
         display: grid;
         grid-template-columns: 1fr;
@@ -137,17 +128,10 @@
     h1 {
         font-size: 1.5rem;
         font-weight: 400;
-        margin: 0 0 1rem;
+        margin: 0 0 0.75rem;
     }
 
-    .categories {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.4rem;
-        margin-bottom: 1.25rem;
-    }
-
-    .art-meta {
+    .print-meta {
         display: flex;
         gap: 1rem;
         align-items: baseline;
@@ -171,13 +155,9 @@
         font-style: italic;
     }
 
-    .tag {
-        font-size: 0.75rem;
-        letter-spacing: 0.04em;
-        color: #666;
-        border: 1px solid #ddd;
-        border-radius: 3px;
-        padding: 0.2rem 0.6rem;
+    .stock {
+        font-size: 0.8rem;
+        color: #aaa;
     }
 
     .description {

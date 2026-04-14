@@ -33,7 +33,7 @@ func main() {
 
 	slog.Info("connected to database", "host", cfg.Database.Host)
 
-	router := api.Routes(db)
+	router := api.Routes(db, cfg)
 
 	if err := router.Run(":" + cfg.Server.Port); err != nil {
 		slog.Error("server failed", "error", err)

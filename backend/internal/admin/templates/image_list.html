@@ -1,0 +1,26 @@
+{{define "image_list.html"}}
+{{template "image_list_inner" .}}
+{{end}}
+
+{{define "image_list_inner"}}
+{{$artID := .ArtID}}
+{{$images := .Images}}
+{{if $images}}
+<div class="image-grid">
+  {{range $images}}
+  <div class="image-thumb">
+    <img src="{{.URL}}" alt="{{.Filename}}">
+    <span class="variant-label">{{.Variant}}</span>
+    <form hx-post="/admin/art/{{$artID}}/images/{{.Id}}/delete"
+          hx-target="#image-list"
+          hx-swap="innerHTML"
+          hx-confirm="Delete this image?">
+      <button type="submit" class="del">✕</button>
+    </form>
+  </div>
+  {{end}}
+</div>
+{{else}}
+<p style="color:#888;font-size:0.85rem;">No images uploaded yet.</p>
+{{end}}
+{{end}}

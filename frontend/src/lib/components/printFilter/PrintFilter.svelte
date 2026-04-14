@@ -1,24 +1,16 @@
 <script lang="ts">
-    import type { CategoryInter } from './CategoryInterface';
-
     let {
-        categories,
         sizes,
-        active,
         activeSize,
         activePriceRange,
         open,
-        onSelect,
         onSizeSelect,
         onPriceSelect,
     }: {
-        categories: CategoryInter[];
-        sizes: string[] | null;
-        active: string | null;
+        sizes: string[];
         activeSize: string | null;
         activePriceRange: number;
         open: boolean;
-        onSelect: (slug: string | null) => void;
         onSizeSelect: (size: string | null) => void;
         onPriceSelect: (index: number) => void;
     } = $props();
@@ -34,35 +26,21 @@
 
 <aside class:open class:closed={!open}>
     <div class="content">
-        <span class="label">Medium</span>
+        <span class="label">Size</span>
         <ul>
             <li>
-                <button class:active={active === null} onclick={() => onSelect(null)}>All</button>
+                <button class:active={activeSize === null} onclick={() => onSizeSelect(null)}>
+                    All
+                </button>
             </li>
-            {#each categories as cat (cat.id)}
+            {#each sizes as size}
                 <li>
-                    <button class:active={active === cat.slug} onclick={() => onSelect(cat.slug)}>
-                        {cat.name}
+                    <button class:active={activeSize === size} onclick={() => onSizeSelect(size)}>
+                        {size}"
                     </button>
                 </li>
             {/each}
         </ul>
-
-        {#if sizes && sizes.length > 0}
-            <span class="label" style="margin-top: 1.25rem;">Size</span>
-            <ul>
-                <li>
-                    <button class:active={activeSize === null} onclick={() => onSizeSelect(null)}>All</button>
-                </li>
-                {#each sizes as size}
-                    <li>
-                        <button class:active={activeSize === size} onclick={() => onSizeSelect(size)}>
-                            {size}"
-                        </button>
-                    </li>
-                {/each}
-            </ul>
-        {/if}
 
         <span class="label" style="margin-top: 1.25rem;">Price</span>
         <ul>
@@ -123,6 +101,12 @@
         white-space: nowrap;
     }
 
-    li button:hover { color: #000; }
-    li button.active { color: #000; font-weight: 500; }
+    li button:hover {
+        color: #000;
+    }
+
+    li button.active {
+        color: #000;
+        font-weight: 500;
+    }
 </style>
