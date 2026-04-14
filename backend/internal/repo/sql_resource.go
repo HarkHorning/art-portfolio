@@ -19,11 +19,11 @@ func (repo *Repo) Ping() error {
 	return repo.db.Ping()
 }
 
-const displayURLSubquery = `(
+const displayURLSubquery = `COALESCE((
 	SELECT url FROM images
 	WHERE art_tile_id = at.id AND variant = 'low'
 	ORDER BY sort_order ASC LIMIT 1
-) AS display_url`
+), '') AS display_url`
 
 // ArtTiles returns artwork filtered by any combination of category, size, and price range.
 // Empty string means no filter for category/size; -1 means no filter for price.

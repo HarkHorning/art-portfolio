@@ -41,13 +41,15 @@ func RunMigrations(cfg config.DatabaseConfig) error {
 
 	// The Docker healthcheck can pass before MySQL fully accepts client connections.
 	// Retry until the connection succeeds.
-	for attempt := 1; attempt <= 10; attempt++ {
-		if err := db.Ping(); err == nil {
+	for attempt := 1; attempt <= 30; attempt++ {
+		pingErr := db.Ping()
+		if pingErr == nil {
 			break
-		} else if attempt == 10 {
-			return fmt.Errorf("database not ready after 10 attempts: %w", err)
 		}
-		slog.Info("waiting for database", "attempt", attempt)
+		if attempt == 30 {
+			return fmt.Errorf("database not ready after 30 attempts: %w", pingErr)
+		}
+		slog.Info("waiting for database", "attempt", attempt, "error", pingErr.Error())
 		time.Sleep(time.Second)
 	}
 

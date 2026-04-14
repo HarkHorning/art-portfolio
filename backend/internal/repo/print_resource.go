@@ -9,11 +9,11 @@ import (
 	"github.com/HarkHorning/portfolio-go-svelte-azure-k8/internal/models"
 )
 
-const printDisplayURLSubquery = `(
+const printDisplayURLSubquery = `COALESCE((
 	SELECT url FROM images
 	WHERE art_tile_id = p.art_tile_id AND variant = 'low'
 	ORDER BY sort_order ASC LIMIT 1
-) AS display_url`
+), '') AS display_url`
 
 func (repo *Repo) Prints(size string, minPrice, maxPrice int) ([]models.PrintModel, error) {
 	prints := make([]models.PrintModel, 0)
