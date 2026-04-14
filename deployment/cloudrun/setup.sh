@@ -60,6 +60,12 @@ gcloud projects add-iam-policy-binding "$GCP_PROJECT_ID" \
   --member="serviceAccount:portfolio-backend@${GCP_PROJECT_ID}.iam.gserviceaccount.com" \
   --role="roles/cloudsql.client"
 
+# Grant GCS access to the service account (for image uploads)
+echo "--- Granting GCS access..."
+gcloud storage buckets add-iam-policy-binding "gs://${GCS_BUCKET}" \
+  --member="serviceAccount:portfolio-backend@${GCP_PROJECT_ID}.iam.gserviceaccount.com" \
+  --role="roles/storage.objectAdmin"
+
 # Print the Cloud SQL connection name to put in .env
 echo ""
 echo "=== Setup complete ==="
@@ -68,3 +74,4 @@ echo "Add this to your .env file:"
 gcloud sql instances describe portfolio-db \
   --format="value(connectionName)" \
   --project="$GCP_PROJECT_ID" | xargs -I{} echo "CLOUD_SQL_CONNECTION={}"
+

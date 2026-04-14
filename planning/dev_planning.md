@@ -1,7 +1,5 @@
 # Development Planning
 
-Future improvements for the portfolio project, organized by priority.
-
 ---
 
 ## Local Development
@@ -13,330 +11,115 @@ make local
 
 **Native backend (faster iteration):**
 ```
-make db       # start MySQL only
-make dev      # start MySQL + run backend natively
+make dev
 ```
 Then in a second terminal: `cd frontend && npm run dev`
 
-- Frontend: http://localhost:5173 (Vite dev server, proxies /api to backend)
-- Backend: http://localhost:8080
+- Frontend: http://localhost:5173
+- Backend API: http://localhost:8080
+- Admin portal: http://localhost:8080/admin (admin / devpassword)
 - MySQL: localhost:3307
 
-**Note:** Images served from `gs://hark-portfolio-images` (GCS, public). Seed data uses GCS URLs.
+**Images:** Served from `gs://hark-portfolio-images` (GCS, public bucket). Seed data uses GCS URLs.
 
 ---
 
-## Infrastructure Decisions
+## Infrastructure
 
-### Cloud Provider: Google Cloud Only
-All production infrastructure uses GCP:
-- **Cloud Run** - cheap, serverless containers (~$0-5/mo)
-- **GKE Autopilot** - full Kubernetes for interviews (~$30+/mo)
-- **Cloud SQL** - shared MySQL database (~$7-10/mo)
-- **Artifact Registry** - container images
+### Cloud Provider: Google Cloud
+- **Cloud Run** — serverless containers (~$0-5/mo)
+- **Cloud SQL** — MySQL 8.0, `db-f1-micro`, 10GB SSD (~$7-10/mo)
+- **Artifact Registry** — Docker images
+- **GCS** — Image storage (`hark-portfolio-images`)
 
 ### Database Architecture
 ```
-Local Development     →  Local MySQL (Docker container)
-Cloud Run (prod)      →  Cloud SQL (shared)
-GKE Kubernetes (prod) →  Cloud SQL (shared)
+Local dev  →  MySQL in Docker (port 3307)
+Cloud Run  →  Cloud SQL via Unix socket (/cloudsql/...)
 ```
 
-All production deployments share the same Cloud SQL instance. Data changes are visible across all environments.
-
----
-
-## High Priority
-
-### 1. Database Migrations
-**Status:** Complete
-**Why:** Current `InitSchema`/`SeedData` runs on every startup. Can't modify schema without losing data.
-
-**Implementation:**
+### Deployment
 ```
-deployment/
-└── migrations/
-    ├── 000001_initial_schema.up.sql
-    ├── 000001_initial_schema.down.sql
-    ├── 000002_seed_art_data.up.sql
-    └── 000002_seed_art_data.down.sql
-```
+PowerShell (Windows):
+  .\deployment\cloudrun\setup.ps1   # one-time infrastructure setup
+  .\deployment\cloudrun\deploy.ps1  # build, push, deploy
 
-**Tool:** [golang-migrate](https://github.com/golang-migrate/migrate)
-
-**Changes needed:**
-1. Create migrations directory
-2. Move schema from `schema.go` to SQL files
-3. Remove `InitSchema`/`SeedData` from app startup
-4. Add `make migrate` and `make migrate-local` commands
-
----
-
-### 2. Tests
-**Status:** Not started
-
-**Backend tests:**
-```
-backend/
-├── internal/
-│   ├── api/
-│   │   └── handler_test.go
-│   └── repo/
-│       └── mysql_test.go
-```
-
-**Frontend tests:**
-- Vitest for unit tests
-- Playwright for E2E tests
-
-**CI integration:**
-```yaml
-- name: Run tests
-  run: go test ./...
-```
-
----
-
-### 3. API Versioning
-**Status:** Complete
-
-Changed `/api/` to `/api/v1/`:
-- `backend/internal/api/router.go`
-- `frontend/nginx.conf`
-- `frontend/src/lib/components/artGrid/ArtGrid.svelte`
-
----
-
-### 4. Cloud SQL Connection Handling
-**Status:** Complete
-**Why:** Cloud Run uses Unix socket (`/cloudsql/...`), GKE uses TCP. App needs to handle both.
-
-**Implementation:**
-```go
-func buildDSN(cfg Config) string {
-    if strings.HasPrefix(cfg.Host, "/cloudsql/") {
-        // Cloud Run - Unix socket
-        return fmt.Sprintf("%s:%s@unix(%s)/%s?parseTime=true",
-            cfg.User, cfg.Password, cfg.Host, cfg.Database)
-    }
-    // Standard TCP connection
-    return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?parseTime=true",
-        cfg.User, cfg.Password, cfg.Host, cfg.Port, cfg.Database)
-}
-```
-
----
-
-## Medium Priority
-
-### 5. Structured Logging
-**Status:** Complete
-
-Replace `fmt.Println` with Go's `log/slog`:
-
-```go
-slog.Error("database connection failed", "host", cfg.Host, "error", err)
-```
-
-Benefits:
-- JSON output for Cloud Logging
-- Log levels
-- Structured fields for filtering
-
----
-
-### 6. Health Check Endpoints
-**Status:** Complete
-
-```go
-GET /health  // Is server running?
-GET /ready   // Is server ready? (pings database)
-```
-
-Cloud Run and GKE use these for traffic routing.
-
----
-
-### 7. CI/CD for GCP
-**Status:** Not started
-
-Replace Azure GitHub Actions with GCP:
-
-```yaml
-- name: Auth to Google Cloud
-  uses: google-github-actions/auth@v2
-  with:
-    credentials_json: ${{ secrets.GCP_SA_KEY }}
-
-- name: Deploy to Cloud Run
-  run: gcloud run deploy ...
-```
-
----
-
-### 8. Frontend Error Handling
-**Status:** Complete
-
-ArtGrid.svelte now handles:
-- Loading state
-- API errors
-- Empty results
-```
-
----
-
-## Lower Priority
-
-### 9. Environment Configuration
-**Status:** Complete
-
-Single config struct with environment detection:
-
-```go
-type Config struct {
-    Environment string // "local", "cloudrun", "k8s"
-    Database    DatabaseConfig
-    Server      ServerConfig
-}
-
-func LoadConfig() Config {
-    env := os.Getenv("ENVIRONMENT")
-    // Load appropriate defaults based on environment
-}
-```
-
----
-
-### 10. API Documentation
-**Status:** Not started
-
-Add OpenAPI/Swagger:
-```
-backend/
-└── api/
-    └── openapi.yaml
-```
-
----
-
-### 11. Rate Limiting
-**Status:** Complete
-
-Per-IP middleware using `golang.org/x/time/rate` (10 req/s, burst 20). Added to `backend/internal/api/middleware.go`, applied globally in `router.go`.
-
----
-
-### 12. Admin Portal
-**Status:** Not started — see `planning/admin-portal.md` for full plan (Bubble Tea TUI approach)
-
----
-
-### 13. Page Titles & Meta Tags
-**Status:** Not started
-
-Add `<svelte:head>` to each page:
-```svelte
-<svelte:head>
-    <title>Hark Horning — Portfolio</title>
-    <meta name="description" content="..." />
-</svelte:head>
-```
-Affects SEO and browser tab labels. Each page needs its own title.
-
-Pages to update: `/`, `/about`, `/art/[id]`
-
----
-
-### 14. Custom Error Page
-**Status:** Complete
-
-`frontend/src/routes/+error.svelte` — handles 404 and all other error codes. Matches site style with a back-to-gallery link.
-
----
-
-### 15. Open Graph Meta Tags
-**Status:** Not started
-
-Makes links look good when shared on social media:
-```svelte
-<meta property="og:title" content="Hark Horning" />
-<meta property="og:image" content="..." />
-<meta property="og:description" content="..." />
-```
-
----
-
-### 16. Art Detail Back Button
-**Status:** Not started
-
-Currently "← Back" goes to `/` which loses filter state.
-Should use `history.back()` so the user returns to their filtered view.
-
-```svelte
-<button onclick={() => history.back()}>← Back</button>
+Make:
+  make cloudrun                     # calls deploy.ps1
 ```
 
 ---
 
 ## Completed Items
 
-| Item | Date | Notes |
-|------|------|-------|
-| API Versioning | 2026-04-03 | `/api/` → `/api/v1/` |
-| Remove exposed credentials | 2026-04-03 | Removed terraform.tfvars from git history |
-| Kubernetes secrets | 2026-04-03 | Moved passwords to K8s Secrets |
-| Navigation bar | 2026-04-05 | Created minimal navbar component |
-| About page (placeholder) | 2026-04-05 | Route created, needs content |
-| Frontend error handling | 2026-04-07 | Added loading/error states to ArtGrid |
-| Health check /ready endpoint | 2026-04-07 | Pings database to verify connectivity |
-| Migrations structure | 2026-04-08 | Created folder, initial schema SQL, README |
-| Makefile | 2026-04-08 | Local dev, cloudrun, and db-only commands |
-| Database migrations | 2026-04-12 | golang-migrate integrated, embedded SQL, replaces InitSchema |
-| Back button | 2026-04-12 | Uses `history.back()` to preserve filter state |
-| Category seed assignments | 2026-04-12 | All 6 seed pieces assigned correct categories |
-| GCS image storage | 2026-04-12 | Bucket created, images uploaded, seed data updated |
-| Custom 404 page | 2026-04-12 | `+error.svelte`, handles all error codes |
-| Art Details Page | 2026-04-11 | `/art/[id]` route, backend endpoint, clickable tiles |
-| Category Filters | 2026-04-11 | Collapsible sidebar, backend filtering, `/api/v1/categories` |
-| Rate Limiting | 2026-04-11 | Per-IP middleware, 10 req/s burst 20, `middleware.go` |
-| Footer | 2026-04-11 | Auto-updating year, copyright disclaimer |
-| About page content | 2026-04-11 | Amusing placeholder, dirt specialist, rock climbing downplayed |
-| Grid dense layout | 2026-04-11 | `grid-auto-flow: dense` eliminates empty spaces |
-| made_year / sold fields | 2026-04-11 | SMALLINT NULL + BOOLEAN on art_tiles, schema + seed updated |
-| Vite proxy | 2026-04-11 | `/api` proxied to `localhost:8080` for native dev workflow |
-| Makefile (Windows/PowerShell) | 2026-04-11 | All targets use PowerShell; `make dev`, `make db`, `make local` |
-| Cloudrun env.template | 2026-04-08 | Template for GCP deployment config |
-| .gitignore updates | 2026-04-08 | Added cloudrun, cloudflare, credentials entries |
-| Cloud SQL connection handling | 2026-04-08 | Unix socket support for Cloud Run |
-| Structured logging | 2026-04-08 | Replaced log with slog, JSON for cloud |
-| Environment configuration | 2026-04-08 | Unified config with auto-detection |
+| Item | Notes |
+|------|-------|
+| API versioning `/api/v1/` | All routes versioned |
+| Remove exposed credentials | Removed from git history |
+| Navigation bar | Minimal, links to Work / Prints / About |
+| About page | Content written |
+| Art details page `/art/[id]` | Full detail with categories, size, price |
+| Art category filters | Sidebar, backend-filtered |
+| Prints page `/prints` | Size + price filters, same layout as work page |
+| Print detail page `/prints/[id]` | Stock status, size, price |
+| Size + price filters (artwork) | Work page filter sidebar extended |
+| Size + price fields on art_tiles | Nullable, migration 3 |
+| Quantity in stock on prints | Migration 3 |
+| 4-column responsive grid | 4→3→2→1 at breakpoints |
+| Page titles | All routes have `<svelte:head><title>` |
+| Custom 404 / error page | `+error.svelte` |
+| Back button | `history.back()` preserves filter state |
+| Rate limiting | Per-IP, 10 req/s burst 20 |
+| Health / ready endpoints | `/health`, `/ready` |
+| Structured logging | `log/slog`, JSON in cloud |
+| Environment config | Auto-detects local / cloudrun |
+| Database migrations | golang-migrate, embedded SQL, 6 migrations |
+| GCS image storage | Public bucket, seed data uses GCS URLs |
+| Normalized images table | `images` table replaces `url_low`/`url_high` columns |
+| Normalized prints schema | `art_tile_id` FK, no duplicate title/url columns |
+| Orders table | Full shipping address, phone, Stripe ID placeholder |
+| Soft delete | `archived_at` on art_tiles and prints |
+| Admin portal | HTMX + Go templates at `/admin` |
+| Admin auth | Session cookie, bcrypt, brute-force protected |
+| Admin — art CRUD | Create, edit, archive, category assignment |
+| Admin — image upload | GCS upload, magic byte validation, HTMX swap |
+| Admin — prints CRUD | Create, edit, archive, stock management |
+| Admin — categories CRUD | Add, delete |
+| GCP infrastructure scripts | `setup.ps1`, `deploy.ps1` (PowerShell) |
+| Cloud Run deploy script | Builds images, pushes to Artifact Registry, deploys both services |
+| Footer | Auto-updating year |
 
 ---
 
-## Migration Path: Azure → GCP
+## Remaining Work
 
-### Files to Update
-- [ ] `deployment/terraform/*.tf` - Rewrite for GCP
-- [ ] `deployment/kubernetes/*.yaml` - Update image URLs to Artifact Registry
-- [ ] `.github/workflows/deploy.yaml` - Replace Azure auth with GCP auth
-- [x] Backend config - Support Cloud SQL Unix socket
+### High Priority
+| Item | Notes |
+|------|-------|
+| First Cloud Run deploy | `deploy.ps1` — in progress |
+| CI/CD pipeline | GitHub Actions — auto-deploy on push to main |
 
-### Files to Delete
-- [ ] Any Azure-specific configs
+### Medium Priority
+| Item | Notes |
+|------|-------|
+| Purchase flow (Stripe) | Checkout session, webhook, mark sold |
+| Image protection | Low/high res tiers, CAPTCHA for high-res (Cloudflare Turnstile) |
+| Open Graph meta tags | Social share previews |
+| Admin — orders UI | View/update order status (schema done, no UI yet) |
 
-### New Files to Create
-- [ ] `deployment/cloudrun/deploy.sh`
-- [ ] `deployment/cloudrun/.env` (from template, gitignored)
-- [x] `Makefile`
-- [x] `deployment/migrations/*.sql`
+### Lower Priority
+| Item | Notes |
+|------|-------|
+| Tests | Backend handler tests, repo integration tests |
+| Logging TUI | Bubble Tea viewer for access logs (future) |
+| API documentation | OpenAPI/Swagger |
+| Custom domain | Cloudflare DNS → Cloud Run URLs |
 
 ---
 
 ## Cost Projections
 
-| Setup | Monthly Cost |
-|-------|--------------|
+| Setup | Monthly |
+|-------|---------|
 | Local only | $0 |
 | Cloud Run + Cloud SQL | ~$10-15 |
-| GKE + Cloud SQL | ~$40-50 |
-| Full setup (both options available) | ~$10-15 (GKE off by default) |
