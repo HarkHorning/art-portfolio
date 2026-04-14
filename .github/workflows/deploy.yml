@@ -1,0 +1,122 @@
+name: Deploy to Cloud Run
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  id-token: write   # required for Workload Identity Federation
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+
+    env:
+      PROJECT:  ${{ secrets.GCP_PROJECT_ID }}
+      REGION:   ${{ secrets.GCP_REGION }}
+      REGISTRY: ${{ secrets.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/portfolio
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
+          service_account:            ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+
+      # --- Build & push ---
+
+      - name: Build backend image
+        run: docker build -t ${{ env.REGISTRY }}/backend:latest ./backend
+
+      - name: Push backend image
+        run: docker push ${{ env.REGISTRY }}/backend:latest
+
+      - name: Build frontend image
+        run: docker build -t ${{ env.REGISTRY }}/frontend:latest ./frontend
+
+      - name: Push frontend image
+        run: docker push ${{ env.REGISTRY }}/frontend:latest
+
+      # --- Deploy backend ---
+
+      - name: Deploy backend
+        run: |
+          gcloud run deploy portfolio-backend \
+            --image="${{ env.REGISTRY }}/backend:latest" \
+            --platform=managed \
+            --region=${{ env.REGION }} \
+            --service-account="portfolio-backend@${{ env.PROJECT }}.iam.gserviceaccount.com" \
+            --add-cloudsql-instances=${{ secrets.CLOUD_SQL_CONNECTION }} \
+            --set-env-vars="\
+          ENVIRONMENT=cloudrun,\
+          DB_HOST=/cloudsql/${{ secrets.CLOUD_SQL_CONNECTION }},\
+          DB_USER=${{ secrets.DB_USER }},\
+          DB_PASSWORD=${{ secrets.DB_PASSWORD }},\
+          DB_NAME=${{ secrets.DB_NAME }},\
+          DB_SEED_DATA=false,\
+          ADMIN_USERNAME=${{ secrets.ADMIN_USERNAME }},\
+          ADMIN_PASSWORD=${{ secrets.ADMIN_PASSWORD }},\
+          ADMIN_SESSION_SECRET=${{ secrets.ADMIN_SESSION_SECRET }},\
+          GCS_BUCKET=${{ secrets.GCS_BUCKET }}" \
+            --allow-unauthenticated \
+            --port=8080 \
+            --project=${{ env.PROJECT }}
+
+      - name: Get backend URL
+        id: backend
+        run: |
+          URL=$(gcloud run services describe portfolio-backend \
+            --platform=managed \
+            --region=${{ env.REGION }} \
+            --format="value(status.url)" \
+            --project=${{ env.PROJECT }})
+          echo "url=$URL" >> $GITHUB_OUTPUT
+
+      # --- Deploy frontend ---
+
+      - name: Deploy frontend
+        run: |
+          gcloud run deploy portfolio-frontend \
+            --image="${{ env.REGISTRY }}/frontend:latest" \
+            --platform=managed \
+            --region=${{ env.REGION }} \
+            --set-env-vars="BACKEND_URL=${{ steps.backend.outputs.url }}" \
+            --allow-unauthenticated \
+            --port=3000 \
+            --project=${{ env.PROJECT }}
+
+      - name: Get frontend URL
+        id: frontend
+        run: |
+          URL=$(gcloud run services describe portfolio-frontend \
+            --platform=managed \
+            --region=${{ env.REGION }} \
+            --format="value(status.url)" \
+            --project=${{ env.PROJECT }})
+          echo "url=$URL" >> $GITHUB_OUTPUT
+
+      # --- Update CORS on backend ---
+
+      - name: Update backend CORS
+        run: |
+          gcloud run services update portfolio-backend \
+            --platform=managed \
+            --region=${{ env.REGION }} \
+            --update-env-vars="CORS_ORIGIN=${{ steps.frontend.outputs.url }}" \
+            --project=${{ env.PROJECT }}
+
+      - name: Done
+        run: |
+          echo "Frontend: ${{ steps.frontend.outputs.url }}"
+          echo "Backend:  ${{ steps.backend.outputs.url }}"

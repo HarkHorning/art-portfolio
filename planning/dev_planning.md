@@ -87,6 +87,8 @@ Make:
 | Admin — categories CRUD | Add, delete |
 | GCP infrastructure scripts | `setup.ps1`, `deploy.ps1` (PowerShell) |
 | Cloud Run deploy script | Builds images, pushes to Artifact Registry, deploys both services |
+| Cloud Run deployment | Live — frontend + backend on Cloud Run, Cloud SQL via Unix socket |
+| nginx API proxy | `proxy_ssl_server_name on`, `Host: $proxy_host` required for Cloud Run HTTPS upstream |
 | Footer | Auto-updating year |
 
 ---
@@ -96,7 +98,6 @@ Make:
 ### High Priority
 | Item | Notes |
 |------|-------|
-| First Cloud Run deploy | `deploy.ps1` — in progress |
 | CI/CD pipeline | GitHub Actions — auto-deploy on push to main |
 
 ### Medium Priority

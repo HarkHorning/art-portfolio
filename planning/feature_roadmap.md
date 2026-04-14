@@ -11,7 +11,7 @@
 | Art / print detail pages | High | **Complete** |
 | About page | Medium | **Complete** |
 | Admin portal (HTMX) | High | **Complete** |
-| Cloud Run deployment | High | **In progress** |
+| Cloud Run deployment | High | **Complete** |
 | CI/CD pipeline | High | Not started |
 | Purchase flow (Stripe) | Medium | Not started |
 | Image protection + CAPTCHA | Medium | Not started |
