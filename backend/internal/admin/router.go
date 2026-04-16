@@ -31,6 +31,7 @@ func RegisterRoutes(rg *gin.RouterGroup, r *repo.Repo, tmplFS fs.FS, cfg config.
 		auth.GET("/art/:id/edit", h.GetArtEdit)
 		auth.POST("/art/:id", h.PostArtUpdate)
 		auth.POST("/art/:id/archive", h.PostArtArchive)
+		auth.POST("/art/:id/publish", h.PostArtTogglePublish)
 		auth.POST("/art/:id/images", h.PostImageUpload)
 		auth.POST("/art/:id/images/:imageId/delete", h.DeleteImage)
 

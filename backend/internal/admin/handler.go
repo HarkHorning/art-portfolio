@@ -252,6 +252,13 @@ func (h *Handler) PostArtArchive(c *gin.Context) {
 	c.Redirect(http.StatusSeeOther, "/admin/art")
 }
 
+func (h *Handler) PostArtTogglePublish(c *gin.Context) {
+	id := paramInt(c, "id")
+	visible := c.PostForm("visible") == "true"
+	h.repo.AdminToggleArtVisible(id, visible)
+	c.Redirect(http.StatusSeeOther, "/admin/art")
+}
+
 // ── Images ───────────────────────────────────────────────────────────────────
 
 func (h *Handler) PostImageUpload(c *gin.Context) {

@@ -53,14 +53,6 @@
   </div>
   {{end}}
   <div class="field">
-    <label>Published</label>
-    <div class="checkbox-row">
-      <input type="checkbox" name="published" value="true"
-        {{if or (not .Art) .Art.Visible}}checked{{end}}>
-      <span>Show on public site</span>
-    </div>
-  </div>
-  <div class="field">
     <label>Categories</label>
     {{range .Categories}}
     <div class="checkbox-row">
