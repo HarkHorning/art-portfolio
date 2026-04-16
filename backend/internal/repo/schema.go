@@ -10,7 +10,7 @@ import (
 func SeedDevData(db *sqlx.DB) error {
 	slog.Info("seeding development data")
 
-	tables := []string{"orders", "art_categories", "images", "prints", "art_tiles", "categories"}
+	tables := []string{"orders", "print_sizes", "art_categories", "images", "prints", "art_tiles", "categories"}
 	for _, table := range tables {
 		_, err := db.Exec(fmt.Sprintf("DELETE FROM %s", table))
 		if err != nil {
@@ -18,7 +18,7 @@ func SeedDevData(db *sqlx.DB) error {
 		}
 	}
 
-	for _, table := range []string{"art_tiles", "categories", "prints", "images", "orders"} {
+	for _, table := range []string{"art_tiles", "categories", "prints", "print_sizes", "images", "orders"} {
 		_, _ = db.Exec(fmt.Sprintf("ALTER TABLE %s AUTO_INCREMENT = 1", table))
 	}
 
@@ -134,22 +134,26 @@ func seedArtCategories(db *sqlx.DB) error {
 }
 
 func seedPrints(db *sqlx.DB) error {
-	_, err := db.Exec(`
-		INSERT INTO prints (art_tile_id, price_cents, size, sold, quantity_in_stock) VALUES
-		(1, 2500,  '5x7',   FALSE, 5),
-		(1, 4500,  '8x10',  FALSE, 5),
-		(2, 4500,  '8x10',  FALSE, 3),
-		(2, 7500,  '11x14', FALSE, 0),
-		(4, 2500,  '5x7',   FALSE, 5),
-		(4, 7500,  '11x14', FALSE, 2),
-		(5, 4500,  '8x10',  FALSE, 5),
-		(5, 12000, '16x20', FALSE, 1),
-		(3, 7500,  '11x14', FALSE, 3),
-		(3, 12000, '16x20', FALSE, 0)
-	`)
+	_, err := db.Exec(`INSERT INTO prints (art_tile_id) VALUES (1),(2),(3),(4),(5)`)
 	if err != nil {
 		return fmt.Errorf("failed to seed prints: %w", err)
 	}
-	slog.Debug("seeded", "table", "prints")
+	_, err = db.Exec(`
+		INSERT INTO print_sizes (print_id, size, price_cents, quantity_in_stock) VALUES
+		(1, '5x7',   2500,  5),
+		(1, '8x10',  4500,  5),
+		(2, '8x10',  4500,  3),
+		(2, '11x14', 7500,  0),
+		(3, '11x14', 7500,  3),
+		(3, '16x20', 12000, 0),
+		(4, '5x7',   2500,  5),
+		(4, '11x14', 7500,  2),
+		(5, '8x10',  4500,  5),
+		(5, '16x20', 12000, 1)
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to seed print sizes: %w", err)
+	}
+	slog.Debug("seeded", "table", "prints+print_sizes")
 	return nil
 }

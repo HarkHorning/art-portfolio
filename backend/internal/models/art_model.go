@@ -18,17 +18,23 @@ type CategoryModel struct {
 	Slug string `db:"slug" json:"slug"`
 }
 
-type PrintModel struct {
+type PrintSizeModel struct {
 	Id              int    `db:"id" json:"id"`
-	ArtTileId       int    `db:"art_tile_id" json:"art_tile_id"`
-	Title           string `db:"title" json:"title"`
-	Description     string `db:"description" json:"description"`
-	Portrait        bool   `db:"portrait" json:"portrait"`
-	DisplayURL      string `db:"display_url" json:"url"`
-	PriceCents      int    `db:"price_cents" json:"price_cents"`
+	PrintId         int    `db:"print_id" json:"print_id"`
 	Size            string `db:"size" json:"size"`
-	Sold            bool   `db:"sold" json:"sold"`
+	PriceCents      int    `db:"price_cents" json:"price_cents"`
 	QuantityInStock int    `db:"quantity_in_stock" json:"quantity_in_stock"`
+	Sold            bool   `db:"sold" json:"sold"`
+}
+
+type PrintModel struct {
+	Id          int              `db:"id" json:"id"`
+	ArtTileId   int              `db:"art_tile_id" json:"art_tile_id"`
+	Title       string           `db:"title" json:"title"`
+	Description string           `db:"description" json:"description"`
+	Portrait    bool             `db:"portrait" json:"portrait"`
+	DisplayURL  string           `db:"display_url" json:"url"`
+	Sizes       []PrintSizeModel `json:"sizes"`
 }
 
 type ArtDetailModel struct {

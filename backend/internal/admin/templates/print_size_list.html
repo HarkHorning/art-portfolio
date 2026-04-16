@@ -1,0 +1,63 @@
+{{define "print_size_list.html"}}
+<div id="size-list">
+  {{if .Sizes}}
+  <table style="margin-bottom:1rem;">
+    <thead>
+      <tr>
+        <th>Size</th>
+        <th>Price</th>
+        <th>Stock</th>
+        <th>Status</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+    {{range .Sizes}}
+    <tr>
+      <td>{{.Size}}"</td>
+      <td>{{dollars .PriceCents}}</td>
+      <td>{{.QuantityInStock}}</td>
+      <td>
+        {{if .Sold}}<span class="tag sold-badge">Sold</span>
+        {{else if eq .QuantityInStock 0}}<span class="tag" style="background:#fef3c7;color:#92400e;">Out of stock</span>
+        {{else}}<span class="tag" style="background:#dcfce7;color:#166534;">In stock</span>{{end}}
+      </td>
+      <td>
+        <form method="POST" action="/admin/prints/{{$.PrintID}}/sizes/{{.Id}}/delete"
+              hx-post="/admin/prints/{{$.PrintID}}/sizes/{{.Id}}/delete"
+              hx-target="#size-list" hx-swap="outerHTML"
+              onsubmit="return confirm('Remove this size?')">
+          <button type="submit" class="btn btn-sm btn-danger">Remove</button>
+        </form>
+      </td>
+    </tr>
+    {{end}}
+    </tbody>
+  </table>
+  {{else}}
+  <p style="color:#888;font-size:0.85rem;margin-bottom:1rem;">No sizes yet — add one below.</p>
+  {{end}}
+
+  <div class="form-card" style="max-width:100%;margin-top:0;">
+    <h2>Add Size</h2>
+    <form hx-post="/admin/prints/{{.PrintID}}/sizes"
+          hx-target="#size-list" hx-swap="outerHTML"
+          method="POST" action="/admin/prints/{{.PrintID}}/sizes"
+          style="display:flex;gap:1rem;align-items:flex-end;flex-wrap:wrap;">
+      <div class="field" style="margin:0;">
+        <label>Size</label>
+        <input type="text" name="size" placeholder="e.g. 8x10" required style="width:100px;">
+      </div>
+      <div class="field" style="margin:0;">
+        <label>Price (cents)</label>
+        <input type="number" name="price_cents" placeholder="e.g. 4500" required style="width:110px;">
+      </div>
+      <div class="field" style="margin:0;">
+        <label>Quantity</label>
+        <input type="number" name="quantity_in_stock" value="0" min="0" style="width:80px;">
+      </div>
+      <button type="submit" class="btn btn-primary">Add</button>
+    </form>
+  </div>
+</div>
+{{end}}

@@ -1,32 +1,34 @@
 <script lang="ts">
-    let { id, title, url, portrait, price_cents, size, sold, quantity_in_stock } : {
+    import type { PrintSizeInter } from './PrintTileInterface';
+
+    let { id, title, url, portrait, sizes } : {
         id: number;
         title: string;
         url: string;
         portrait: boolean;
-        price_cents: number;
-        size: string;
-        sold: boolean;
-        quantity_in_stock: number;
+        sizes: PrintSizeInter[];
     } = $props();
+
+    const availableSizes = sizes.filter(s => !s.sold && s.quantity_in_stock > 0);
+    const fromPrice = availableSizes.length > 0
+        ? Math.min(...availableSizes.map(s => s.price_cents))
+        : null;
 
     function formatPrice(cents: number): string {
         return `$${(cents / 100).toFixed(0)}`;
     }
 </script>
 
-<a href="/prints/{id}" class={portrait ? 'portrait' : 'landscape'} class:sold>
+<a href="/prints/{id}" class={portrait ? 'portrait' : 'landscape'} class:unavailable={availableSizes.length === 0}>
     <img src={url} alt={title} class="image" />
     <div class="meta">
         <h2>{title}</h2>
         <div class="details">
-            <span class="size">{size}"</span>
-            {#if sold}
-                <span class="price sold-label">Sold</span>
-            {:else if quantity_in_stock === 0}
-                <span class="price sold-label">Out of stock</span>
+            {#if fromPrice !== null}
+                <span class="price">from {formatPrice(fromPrice)}</span>
+                <span class="size-count">{availableSizes.length} {availableSizes.length === 1 ? 'size' : 'sizes'}</span>
             {:else}
-                <span class="price">{formatPrice(price_cents)}</span>
+                <span class="sold-label">Out of stock</span>
             {/if}
         </div>
     </div>
@@ -48,7 +50,7 @@
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
     }
 
-    a.sold {
+    a.unavailable {
         opacity: 0.6;
     }
 
@@ -87,10 +89,7 @@
         gap: 0.5rem;
         flex-shrink: 0;
         font-size: 0.8rem;
-    }
-
-    .size {
-        color: #999;
+        align-items: baseline;
     }
 
     .price {
@@ -98,9 +97,13 @@
         font-weight: 500;
     }
 
+    .size-count {
+        color: #aaa;
+        font-size: 0.75rem;
+    }
+
     .sold-label {
         color: #999;
         font-style: italic;
-        font-weight: 400;
     }
 </style>

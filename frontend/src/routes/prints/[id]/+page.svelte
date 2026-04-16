@@ -1,5 +1,6 @@
 <script lang="ts">
     import { page } from '$app/stores';
+    import type { PrintSizeInter } from '$lib/components/printTile/PrintTileInterface';
 
     interface PrintDetail {
         id: number;
@@ -7,15 +8,13 @@
         description: string;
         portrait: boolean;
         url: string;
-        price_cents: number;
-        size: string;
-        sold: boolean;
-        quantity_in_stock: number;
+        sizes: PrintSizeInter[];
     }
 
     let print: PrintDetail | null = $state(null);
     let loading = $state(true);
     let error: string | null = $state(null);
+    let selectedSize: PrintSizeInter | null = $state(null);
 
     $effect(() => {
         const id = $page.params.id;
@@ -27,6 +26,10 @@
                 const res = await fetch(`/api/v1/prints/${id}`);
                 if (!res.ok) throw new Error();
                 print = await res.json();
+                // Default to cheapest available size
+                if (print) {
+                    selectedSize = print.sizes.find(s => !s.sold && s.quantity_in_stock > 0) ?? print.sizes[0] ?? null;
+                }
             } catch {
                 error = 'Could not load this print.';
             } finally {
@@ -37,6 +40,10 @@
 
     function formatPrice(cents: number): string {
         return `$${(cents / 100).toFixed(0)}`;
+    }
+
+    function isAvailable(s: PrintSizeInter): boolean {
+        return !s.sold && s.quantity_in_stock > 0;
     }
 </script>
 
@@ -58,17 +65,35 @@
             </div>
             <div class="info">
                 <h1>{print.title}</h1>
-                <div class="print-meta">
-                    <span class="size">{print.size}"</span>
-                    {#if print.sold}
-                        <span class="sold">Sold</span>
-                    {:else if print.quantity_in_stock === 0}
-                        <span class="sold">Out of stock</span>
-                    {:else}
-                        <span class="price">{formatPrice(print.price_cents)}</span>
-                        <span class="stock">({print.quantity_in_stock} in stock)</span>
+
+                {#if print.sizes.length > 0}
+                    <div class="size-selector">
+                        {#each print.sizes as size}
+                            <button
+                                class="size-btn"
+                                class:selected={selectedSize?.id === size.id}
+                                class:unavailable={!isAvailable(size)}
+                                onclick={() => selectedSize = size}
+                            >
+                                {size.size}"
+                            </button>
+                        {/each}
+                    </div>
+
+                    {#if selectedSize}
+                        <div class="price-row">
+                            {#if !isAvailable(selectedSize)}
+                                <span class="sold">
+                                    {selectedSize.sold ? 'Sold' : 'Out of stock'}
+                                </span>
+                            {:else}
+                                <span class="price">{formatPrice(selectedSize.price_cents)}</span>
+                                <span class="stock">({selectedSize.quantity_in_stock} in stock)</span>
+                            {/if}
+                        </div>
                     {/if}
-                </div>
+                {/if}
+
                 {#if print.description}
                     <p class="description">{print.description}</p>
                 {/if}
@@ -96,9 +121,7 @@
         transition: color 0.2s;
     }
 
-    .back:hover {
-        color: #000;
-    }
+    .back:hover { color: #000; }
 
     .detail.portrait {
         display: grid;
@@ -121,44 +144,47 @@
         display: block;
     }
 
-    .info {
-        padding-top: 0.5rem;
-    }
+    .info { padding-top: 0.5rem; }
 
     h1 {
         font-size: 1.5rem;
         font-weight: 400;
-        margin: 0 0 0.75rem;
+        margin: 0 0 1.25rem;
     }
 
-    .print-meta {
+    .size-selector {
         display: flex;
-        gap: 1rem;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .size-btn {
+        padding: 0.35rem 0.75rem;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        background: #fff;
+        cursor: pointer;
+        font-family: inherit;
+        font-size: 0.85rem;
+        color: #333;
+        transition: border-color 0.15s, background 0.15s;
+    }
+
+    .size-btn:hover { border-color: #999; }
+    .size-btn.selected { border-color: #111; background: #111; color: #fff; }
+    .size-btn.unavailable { opacity: 0.4; cursor: default; }
+
+    .price-row {
+        display: flex;
         align-items: baseline;
+        gap: 0.75rem;
         margin-bottom: 1.25rem;
     }
 
-    .size {
-        font-size: 0.85rem;
-        color: #999;
-    }
-
-    .price {
-        font-size: 1.1rem;
-        font-weight: 500;
-        color: #111;
-    }
-
-    .sold {
-        font-size: 0.85rem;
-        color: #999;
-        font-style: italic;
-    }
-
-    .stock {
-        font-size: 0.8rem;
-        color: #aaa;
-    }
+    .price { font-size: 1.1rem; font-weight: 500; color: #111; }
+    .stock { font-size: 0.8rem; color: #aaa; }
+    .sold { font-size: 0.85rem; color: #999; font-style: italic; }
 
     .description {
         color: #555;
@@ -167,18 +193,10 @@
         margin: 0;
     }
 
-    .status {
-        color: #666;
-        font-style: italic;
-    }
-
-    .error {
-        color: #c00;
-    }
+    .status { color: #666; font-style: italic; }
+    .error { color: #c00; }
 
     @media (max-width: 650px) {
-        .detail.portrait {
-            grid-template-columns: 1fr;
-        }
+        .detail.portrait { grid-template-columns: 1fr; }
     }
 </style>

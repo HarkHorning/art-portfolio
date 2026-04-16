@@ -12,7 +12,7 @@
 | About page | Medium | **Complete** |
 | Admin portal (HTMX) | High | **Complete** |
 | Cloud Run deployment | High | **Complete** |
-| CI/CD pipeline | High | Not started |
+| CI/CD pipeline | High | **Complete** |
 | Purchase flow (Stripe) | Medium | Not started |
 | Image protection + CAPTCHA | Medium | Not started |
 | Orders admin UI | Medium | Not started (schema done) |

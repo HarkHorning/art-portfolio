@@ -89,16 +89,13 @@ Make:
 | Cloud Run deploy script | Builds images, pushes to Artifact Registry, deploys both services |
 | Cloud Run deployment | Live — frontend + backend on Cloud Run, Cloud SQL via Unix socket |
 | nginx API proxy | `proxy_ssl_server_name on`, `Host: $proxy_host` required for Cloud Run HTTPS upstream |
+| CI/CD pipeline | GitHub Actions — pushes to `main` auto-build, push, and deploy both services |
 | Footer | Auto-updating year |
 
 ---
 
 ## Remaining Work
 
-### High Priority
-| Item | Notes |
-|------|-------|
-| CI/CD pipeline | GitHub Actions — auto-deploy on push to main |
 
 ### Medium Priority
 | Item | Notes |
