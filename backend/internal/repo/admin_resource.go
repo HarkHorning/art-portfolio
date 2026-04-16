@@ -134,37 +134,60 @@ func (repo *Repo) AdminImagesByArtID(artID int) ([]models.ImageModel, error) {
 
 func (repo *Repo) AdminAllPrints() ([]models.PrintModel, error) {
 	prints := make([]models.PrintModel, 0)
-	err := repo.db.Select(&prints, fmt.Sprintf(`
-		SELECT p.id, p.art_tile_id, at.title, at.description, at.portrait, %s,
-		       p.price_cents, p.size, p.sold, p.quantity_in_stock
+	if err := repo.db.Select(&prints, fmt.Sprintf(`
+		SELECT p.id, p.art_tile_id, at.title, at.description, at.portrait, %s
 		FROM prints p
 		JOIN art_tiles at ON p.art_tile_id = at.id
 		WHERE p.archived_at IS NULL
 		ORDER BY p.id ASC
-	`, printDisplayURLSubquery))
-	return prints, err
+	`, printDisplayURLSubquery)); err != nil {
+		return nil, err
+	}
+	if err := loadPrintSizes(repo, prints); err != nil {
+		return nil, err
+	}
+	return prints, nil
 }
 
-func (repo *Repo) AdminCreatePrint(artTileID int, size string, priceCents int, quantity int) (int64, error) {
-	res, err := repo.db.Exec(`
-		INSERT INTO prints (art_tile_id, size, price_cents, quantity_in_stock)
-		VALUES (?, ?, ?, ?)
-	`, artTileID, size, priceCents, quantity)
+func (repo *Repo) AdminCreatePrint(artTileID int) (int64, error) {
+	res, err := repo.db.Exec(`INSERT INTO prints (art_tile_id) VALUES (?)`, artTileID)
 	if err != nil {
 		return 0, fmt.Errorf("could not create print: %w", err)
 	}
 	return res.LastInsertId()
 }
 
-func (repo *Repo) AdminUpdatePrint(id, priceCents, quantity int, size string, sold bool) error {
-	_, err := repo.db.Exec(`
-		UPDATE prints SET price_cents=?, quantity_in_stock=?, size=?, sold=? WHERE id=?
-	`, priceCents, quantity, size, sold, id)
+func (repo *Repo) AdminArchivePrint(id int) error {
+	_, err := repo.db.Exec(`UPDATE prints SET archived_at = NOW() WHERE id = ?`, id)
 	return err
 }
 
-func (repo *Repo) AdminArchivePrint(id int) error {
-	_, err := repo.db.Exec(`UPDATE prints SET archived_at = NOW() WHERE id = ?`, id)
+func (repo *Repo) AdminPrintSizesByPrint(printID int) ([]models.PrintSizeModel, error) {
+	sizes := make([]models.PrintSizeModel, 0)
+	err := repo.db.Select(&sizes, `
+		SELECT id, print_id, size, price_cents, quantity_in_stock, sold
+		FROM print_sizes WHERE print_id = ? AND archived_at IS NULL
+		ORDER BY price_cents ASC`, printID)
+	return sizes, err
+}
+
+func (repo *Repo) AdminAddPrintSize(printID int, size string, priceCents, qty int) error {
+	_, err := repo.db.Exec(`
+		INSERT INTO print_sizes (print_id, size, price_cents, quantity_in_stock)
+		VALUES (?, ?, ?, ?)
+	`, printID, size, priceCents, qty)
+	return err
+}
+
+func (repo *Repo) AdminUpdatePrintSize(id int, size string, priceCents, qty int, sold bool) error {
+	_, err := repo.db.Exec(`
+		UPDATE print_sizes SET size=?, price_cents=?, quantity_in_stock=?, sold=? WHERE id=?
+	`, size, priceCents, qty, sold, id)
+	return err
+}
+
+func (repo *Repo) AdminArchivePrintSize(id int) error {
+	_, err := repo.db.Exec(`UPDATE print_sizes SET archived_at = NOW() WHERE id = ?`, id)
 	return err
 }
 

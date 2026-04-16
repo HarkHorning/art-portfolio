@@ -72,6 +72,20 @@ func templateFuncs() template.FuncMap {
 			return *n
 		},
 		"not": func(b bool) bool { return !b },
+		"dict": func(values ...any) (map[string]any, error) {
+			if len(values)%2 != 0 {
+				return nil, fmt.Errorf("dict requires even number of arguments")
+			}
+			m := make(map[string]any, len(values)/2)
+			for i := 0; i < len(values); i += 2 {
+				key, ok := values[i].(string)
+				if !ok {
+					return nil, fmt.Errorf("dict keys must be strings")
+				}
+				m[key] = values[i+1]
+			}
+			return m, nil
+		},
 		"hasCategory": func(cats []models.CategoryModel, id int) bool {
 			for _, c := range cats {
 				if c.Id == id {
@@ -86,7 +100,7 @@ func templateFuncs() template.FuncMap {
 func (h *Handler) render(c *gin.Context, name string, data any) {
 	c.Header("Content-Type", "text/html; charset=utf-8")
 
-	isPartial := name == "image_list.html" || name == "login.html"
+	isPartial := name == "image_list.html" || name == "print_size_list.html" || name == "login.html"
 	var files []string
 	if isPartial {
 		files = []string{"templates/" + name}
@@ -94,6 +108,9 @@ func (h *Handler) render(c *gin.Context, name string, data any) {
 		files = []string{"templates/layout.html", "templates/" + name}
 		if name == "art_form.html" {
 			files = append(files, "templates/image_list.html")
+		}
+		if name == "print_form.html" {
+			files = append(files, "templates/print_size_list.html")
 		}
 	}
 
@@ -327,33 +344,28 @@ func (h *Handler) GetPrintList(c *gin.Context) {
 		c.String(http.StatusInternalServerError, "error loading prints")
 		return
 	}
-	arts, _ := h.repo.AdminAllArt()
-	h.render(c, "prints_list.html", gin.H{"Prints": prints, "Arts": arts})
+	h.render(c, "prints_list.html", gin.H{"Prints": prints})
 }
 
 func (h *Handler) GetPrintNew(c *gin.Context) {
 	arts, _ := h.repo.AdminAllArt()
-	h.render(c, "print_form.html", gin.H{"Print": nil, "Arts": arts, "Action": "/admin/prints"})
+	h.render(c, "print_form.html", gin.H{"Print": nil, "Arts": arts})
 }
 
 func (h *Handler) PostPrintCreate(c *gin.Context) {
 	artTileID := parseInt(c.PostForm("art_tile_id"), 0)
-	size := strings.TrimSpace(c.PostForm("size"))
-	priceCents := parseInt(c.PostForm("price_cents"), 0)
-	quantity := parseInt(c.PostForm("quantity_in_stock"), 0)
-
-	if artTileID == 0 || size == "" {
+	if artTileID == 0 {
 		arts, _ := h.repo.AdminAllArt()
-		h.render(c, "print_form.html", gin.H{"Error": "Art piece and size are required", "Arts": arts, "Action": "/admin/prints"})
+		h.render(c, "print_form.html", gin.H{"Error": "Select an artwork", "Arts": arts})
 		return
 	}
-
-	if _, err := h.repo.AdminCreatePrint(artTileID, size, priceCents, quantity); err != nil {
+	id, err := h.repo.AdminCreatePrint(artTileID)
+	if err != nil {
 		slog.Error("admin: create print", "error", err)
 		c.String(http.StatusInternalServerError, "create failed")
 		return
 	}
-	c.Redirect(http.StatusSeeOther, "/admin/prints")
+	c.Redirect(http.StatusSeeOther, fmt.Sprintf("/admin/prints/%d/edit", id))
 }
 
 func (h *Handler) GetPrintEdit(c *gin.Context) {
@@ -363,27 +375,7 @@ func (h *Handler) GetPrintEdit(c *gin.Context) {
 		c.String(http.StatusNotFound, "not found")
 		return
 	}
-	arts, _ := h.repo.AdminAllArt()
-	h.render(c, "print_form.html", gin.H{
-		"Print":  p,
-		"Arts":   arts,
-		"Action": fmt.Sprintf("/admin/prints/%d", id),
-	})
-}
-
-func (h *Handler) PostPrintUpdate(c *gin.Context) {
-	id := paramInt(c, "id")
-	size := strings.TrimSpace(c.PostForm("size"))
-	priceCents := parseInt(c.PostForm("price_cents"), 0)
-	quantity := parseInt(c.PostForm("quantity_in_stock"), 0)
-	sold := c.PostForm("sold") == "true"
-
-	if err := h.repo.AdminUpdatePrint(id, priceCents, quantity, size, sold); err != nil {
-		slog.Error("admin: update print", "error", err)
-		c.String(http.StatusInternalServerError, "update failed")
-		return
-	}
-	c.Redirect(http.StatusSeeOther, "/admin/prints")
+	h.render(c, "print_form.html", gin.H{"Print": p})
 }
 
 func (h *Handler) PostPrintArchive(c *gin.Context) {
@@ -393,6 +385,34 @@ func (h *Handler) PostPrintArchive(c *gin.Context) {
 		return
 	}
 	c.Redirect(http.StatusSeeOther, "/admin/prints")
+}
+
+func (h *Handler) PostPrintSizeAdd(c *gin.Context) {
+	printID := paramInt(c, "id")
+	size := strings.TrimSpace(c.PostForm("size"))
+	priceCents := parseInt(c.PostForm("price_cents"), 0)
+	qty := parseInt(c.PostForm("quantity_in_stock"), 0)
+
+	if size != "" {
+		if err := h.repo.AdminAddPrintSize(printID, size, priceCents, qty); err != nil {
+			slog.Error("admin: add print size", "error", err)
+		}
+	}
+	h.renderPrintSizeList(c, printID)
+}
+
+func (h *Handler) PostPrintSizeDelete(c *gin.Context) {
+	printID := paramInt(c, "id")
+	sizeID := paramInt(c, "psid")
+	if err := h.repo.AdminArchivePrintSize(sizeID); err != nil {
+		slog.Error("admin: archive print size", "error", err)
+	}
+	h.renderPrintSizeList(c, printID)
+}
+
+func (h *Handler) renderPrintSizeList(c *gin.Context, printID int) {
+	sizes, _ := h.repo.AdminPrintSizesByPrint(printID)
+	h.render(c, "print_size_list.html", gin.H{"PrintID": printID, "Sizes": sizes})
 }
 
 // ── Categories ───────────────────────────────────────────────────────────────

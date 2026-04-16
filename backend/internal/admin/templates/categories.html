@@ -18,7 +18,7 @@
   {{range .Categories}}
   <tr>
     <td>{{.Name}}</td>
-    <td><code style="font-size:0.8rem;background:#f5f5f5;padding:0.1rem 0.3rem;border-radius:3px;">{{.Slug}}</code></td>
+    <td><code style="font-size:0.8rem;background:#f5f5f5;color:#333;padding:0.1rem 0.3rem;border-radius:3px;">{{.Slug}}</code></td>
     <td>
       <form method="POST" action="/admin/categories/{{.Id}}/delete" style="display:inline;"
             onsubmit="return confirm('Delete category {{.Name}}? This cannot be undone.')">

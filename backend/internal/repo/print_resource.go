@@ -19,42 +19,49 @@ func (repo *Repo) Prints(size string, minPrice, maxPrice int) ([]models.PrintMod
 	prints := make([]models.PrintModel, 0)
 
 	query := fmt.Sprintf(`
-		SELECT p.id, p.art_tile_id, at.title, at.description, at.portrait, %s,
-		       p.price_cents, p.size, p.sold, p.quantity_in_stock
+		SELECT p.id, p.art_tile_id, at.title, at.description, at.portrait, %s
 		FROM prints p
 		JOIN art_tiles at ON p.art_tile_id = at.id
-		WHERE p.archived_at IS NULL AND at.archived_at IS NULL`, printDisplayURLSubquery)
+		WHERE p.archived_at IS NULL AND at.archived_at IS NULL`,
+		printDisplayURLSubquery)
 
 	args := make([]any, 0)
 
-	if size != "" {
-		query += ` AND p.size = ?`
-		args = append(args, size)
-	}
-	if minPrice >= 0 {
-		query += ` AND p.price_cents >= ?`
-		args = append(args, minPrice)
-	}
-	if maxPrice >= 0 {
-		query += ` AND p.price_cents <= ?`
-		args = append(args, maxPrice)
+	if size != "" || minPrice >= 0 || maxPrice >= 0 {
+		sub := `EXISTS (
+			SELECT 1 FROM print_sizes ps
+			WHERE ps.print_id = p.id AND ps.archived_at IS NULL`
+		if size != "" {
+			sub += ` AND ps.size = ?`
+			args = append(args, size)
+		}
+		if minPrice >= 0 {
+			sub += ` AND ps.price_cents >= ?`
+			args = append(args, minPrice)
+		}
+		if maxPrice >= 0 {
+			sub += ` AND ps.price_cents <= ?`
+			args = append(args, maxPrice)
+		}
+		sub += `)`
+		query += ` AND ` + sub
 	}
 
 	query += ` ORDER BY p.id ASC`
 
-	err := repo.db.Select(&prints, query, args...)
-	if err != nil {
+	if err := repo.db.Select(&prints, query, args...); err != nil {
 		return nil, fmt.Errorf("could not list prints: %w", err)
 	}
-
+	if err := loadPrintSizes(repo, prints); err != nil {
+		return nil, err
+	}
 	return prints, nil
 }
 
 func (repo *Repo) PrintByID(id int) (*models.PrintModel, error) {
 	var p models.PrintModel
 	err := repo.db.Get(&p, fmt.Sprintf(`
-		SELECT p.id, p.art_tile_id, at.title, at.description, at.portrait, %s,
-		       p.price_cents, p.size, p.sold, p.quantity_in_stock
+		SELECT p.id, p.art_tile_id, at.title, at.description, at.portrait, %s
 		FROM prints p
 		JOIN art_tiles at ON p.art_tile_id = at.id
 		WHERE p.id = ? AND p.archived_at IS NULL
@@ -62,24 +69,61 @@ func (repo *Repo) PrintByID(id int) (*models.PrintModel, error) {
 	if err != nil {
 		return nil, fmt.Errorf("print not found: %w", err)
 	}
+	if err := repo.db.Select(&p.Sizes, `
+		SELECT id, print_id, size, price_cents, quantity_in_stock, sold
+		FROM print_sizes WHERE print_id = ? AND archived_at IS NULL
+		ORDER BY price_cents ASC`, id); err != nil {
+		return nil, fmt.Errorf("could not load print sizes: %w", err)
+	}
 	return &p, nil
 }
 
 func (repo *Repo) PrintSizes() ([]string, error) {
 	var sizes []string
 	err := repo.db.Select(&sizes, `
-		SELECT DISTINCT size FROM prints
+		SELECT DISTINCT size FROM print_sizes
 		WHERE archived_at IS NULL
 		ORDER BY size ASC`)
 	if err != nil {
 		return nil, fmt.Errorf("could not list print sizes: %w", err)
 	}
-
 	sort.Slice(sizes, func(i, j int) bool {
 		return firstDim(sizes[i]) < firstDim(sizes[j])
 	})
-
 	return sizes, nil
+}
+
+// loadPrintSizes fetches all sizes for the given prints in one query
+// and assigns them in-place via index into the backing array.
+func loadPrintSizes(repo *Repo, prints []models.PrintModel) error {
+	if len(prints) == 0 {
+		return nil
+	}
+	idIndex := make(map[int]int, len(prints))
+	placeholders := make([]string, len(prints))
+	args := make([]any, len(prints))
+	for i, p := range prints {
+		idIndex[p.Id] = i
+		placeholders[i] = "?"
+		args[i] = p.Id
+		prints[i].Sizes = []models.PrintSizeModel{}
+	}
+	query := fmt.Sprintf(`
+		SELECT id, print_id, size, price_cents, quantity_in_stock, sold
+		FROM print_sizes
+		WHERE print_id IN (%s) AND archived_at IS NULL
+		ORDER BY price_cents ASC`, strings.Join(placeholders, ","))
+
+	var sizes []models.PrintSizeModel
+	if err := repo.db.Select(&sizes, query, args...); err != nil {
+		return fmt.Errorf("could not load print sizes: %w", err)
+	}
+	for _, s := range sizes {
+		if idx, ok := idIndex[s.PrintId]; ok {
+			prints[idx].Sizes = append(prints[idx].Sizes, s)
+		}
+	}
+	return nil
 }
 
 func firstDim(size string) int {

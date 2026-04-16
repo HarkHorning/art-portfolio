@@ -23,10 +23,7 @@
                 title={print.title}
                 url={print.url}
                 portrait={print.portrait}
-                price_cents={print.price_cents}
-                size={print.size}
-                sold={print.sold}
-                quantity_in_stock={print.quantity_in_stock}
+                sizes={print.sizes}
             />
         {/each}
     </div>
