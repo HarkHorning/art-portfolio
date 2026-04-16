@@ -135,7 +135,7 @@ func (repo *Repo) AdminImagesByArtID(artID int) ([]models.ImageModel, error) {
 func (repo *Repo) AdminAllPrints() ([]models.PrintModel, error) {
 	prints := make([]models.PrintModel, 0)
 	if err := repo.db.Select(&prints, fmt.Sprintf(`
-		SELECT p.id, p.art_tile_id, at.title, at.description, at.portrait, %s
+		SELECT p.id, p.art_tile_id, at.title, at.description, at.portrait, %s, p.visible
 		FROM prints p
 		JOIN art_tiles at ON p.art_tile_id = at.id
 		WHERE p.archived_at IS NULL
@@ -159,6 +159,16 @@ func (repo *Repo) AdminCreatePrint(artTileID int) (int64, error) {
 
 func (repo *Repo) AdminArchivePrint(id int) error {
 	_, err := repo.db.Exec(`UPDATE prints SET archived_at = NOW() WHERE id = ?`, id)
+	return err
+}
+
+func (repo *Repo) AdminTogglePrintVisible(id int, visible bool) error {
+	_, err := repo.db.Exec(`UPDATE prints SET visible = ? WHERE id = ?`, visible, id)
+	return err
+}
+
+func (repo *Repo) AdminToggleArtVisible(id int, visible bool) error {
+	_, err := repo.db.Exec(`UPDATE art_tiles SET visible = ? WHERE id = ?`, visible, id)
 	return err
 }
 

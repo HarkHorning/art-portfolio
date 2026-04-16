@@ -31,7 +31,7 @@
     <td>{{range .Categories}}<span class="tag">{{.Name}}</span>{{end}}</td>
     <td>{{if .Size}}{{deref .Size}}{{else}}&mdash;{{end}}</td>
     <td>{{if .PriceCents}}{{dollars (derefInt .PriceCents)}}{{else}}&mdash;{{end}}</td>
-    <td>{{if not .Visible}}<span class="tag archived-badge">Hidden</span>{{else}}&mdash;{{end}}</td>
+    <td>{{if not .Visible}}<span class="tag archived-badge">Draft</span>{{else}}&mdash;{{end}}</td>
     <td>{{if .Sold}}<span class="tag sold-badge">Sold</span>{{else}}&mdash;{{end}}</td>
     <td style="white-space:nowrap;">
       <a href="/admin/art/{{.Id}}/edit" class="btn btn-sm">Edit</a>

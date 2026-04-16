@@ -34,6 +34,7 @@ type PrintModel struct {
 	Description string           `db:"description" json:"description"`
 	Portrait    bool             `db:"portrait" json:"portrait"`
 	DisplayURL  string           `db:"display_url" json:"url"`
+	Visible     bool             `db:"visible" json:"visible"`
 	Sizes       []PrintSizeModel `json:"sizes"`
 }
 

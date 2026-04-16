@@ -12,6 +12,7 @@
       <th>Image</th>
       <th>Title</th>
       <th>Sizes</th>
+      <th>Published</th>
       <th>Actions</th>
     </tr>
   </thead>
@@ -29,6 +30,17 @@
         <span style="color:#888;font-size:0.8rem;">No sizes yet</span>
       {{end}}
     </td>
+    <td>
+      <form method="POST" action="/admin/prints/{{.Id}}/publish" style="display:inline;">
+        {{if .Visible}}
+          <input type="hidden" name="visible" value="false">
+          <button type="submit" class="btn btn-sm">Unpublish</button>
+        {{else}}
+          <input type="hidden" name="visible" value="true">
+          <button type="submit" class="btn btn-sm btn-primary">Publish</button>
+        {{end}}
+      </form>
+    </td>
     <td style="white-space:nowrap;">
       <a href="/admin/prints/{{.Id}}/edit" class="btn btn-sm">Edit</a>
       <form method="POST" action="/admin/prints/{{.Id}}/archive" style="display:inline;"
@@ -38,7 +50,7 @@
     </td>
   </tr>
   {{else}}
-  <tr><td colspan="4" style="text-align:center;color:#888;padding:2rem;">No prints yet.</td></tr>
+  <tr><td colspan="6" style="text-align:center;color:#888;padding:2rem;">No prints yet.</td></tr>
   {{end}}
   </tbody>
 </table>
