@@ -14,7 +14,7 @@
       <th>Categories</th>
       <th>Size</th>
       <th>Price</th>
-      <th>Visible</th>
+      <th>Published</th>
       <th>Status</th>
       <th>Actions</th>
     </tr>
@@ -31,7 +31,17 @@
     <td>{{range .Categories}}<span class="tag">{{.Name}}</span>{{end}}</td>
     <td>{{if .Size}}{{deref .Size}}{{else}}&mdash;{{end}}</td>
     <td>{{if .PriceCents}}{{dollars (derefInt .PriceCents)}}{{else}}&mdash;{{end}}</td>
-    <td>{{if not .Visible}}<span class="tag archived-badge">Draft</span>{{else}}&mdash;{{end}}</td>
+    <td>
+      <form method="POST" action="/admin/art/{{.Id}}/publish" style="display:inline;">
+        {{if .Visible}}
+          <input type="hidden" name="visible" value="false">
+          <button type="submit" class="btn btn-sm">Unpublish</button>
+        {{else}}
+          <input type="hidden" name="visible" value="true">
+          <button type="submit" class="btn btn-sm btn-primary">Publish</button>
+        {{end}}
+      </form>
+    </td>
     <td>{{if .Sold}}<span class="tag sold-badge">Sold</span>{{else}}&mdash;{{end}}</td>
     <td style="white-space:nowrap;">
       <a href="/admin/art/{{.Id}}/edit" class="btn btn-sm">Edit</a>
