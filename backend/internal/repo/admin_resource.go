@@ -10,7 +10,7 @@ import (
 
 func (repo *Repo) AdminAllArt() ([]models.ArtDetailModel, error) {
 	rows, err := repo.db.Queryx(`
-		SELECT id, title, description, portrait, made_year, sold, size, price_cents
+		SELECT id, title, description, portrait, made_year, sold, visible, size, price_cents
 		FROM art_tiles
 		WHERE archived_at IS NULL
 		ORDER BY display_order ASC, id ASC
@@ -53,23 +53,23 @@ func (repo *Repo) AdminAllArt() ([]models.ArtDetailModel, error) {
 	return arts, nil
 }
 
-func (repo *Repo) AdminCreateArt(title, description string, portrait bool, madeYear *int, size *string, priceCents *int, displayOrder int) (int64, error) {
+func (repo *Repo) AdminCreateArt(title, description string, portrait bool, madeYear *int, size *string, priceCents *int, displayOrder int, visible bool) (int64, error) {
 	res, err := repo.db.Exec(`
-		INSERT INTO art_tiles (title, description, portrait, made_year, size, price_cents, display_order)
-		VALUES (?, ?, ?, ?, ?, ?, ?)
-	`, title, description, portrait, madeYear, size, priceCents, displayOrder)
+		INSERT INTO art_tiles (title, description, portrait, made_year, size, price_cents, display_order, visible)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+	`, title, description, portrait, madeYear, size, priceCents, displayOrder, visible)
 	if err != nil {
 		return 0, fmt.Errorf("could not create art: %w", err)
 	}
 	return res.LastInsertId()
 }
 
-func (repo *Repo) AdminUpdateArt(id int, title, description string, portrait bool, madeYear *int, size *string, priceCents *int, sold bool) error {
+func (repo *Repo) AdminUpdateArt(id int, title, description string, portrait bool, madeYear *int, size *string, priceCents *int, sold, visible bool) error {
 	_, err := repo.db.Exec(`
 		UPDATE art_tiles
-		SET title=?, description=?, portrait=?, made_year=?, size=?, price_cents=?, sold=?
+		SET title=?, description=?, portrait=?, made_year=?, size=?, price_cents=?, sold=?, visible=?
 		WHERE id=?
-	`, title, description, portrait, madeYear, size, priceCents, sold, id)
+	`, title, description, portrait, madeYear, size, priceCents, sold, visible, id)
 	return err
 }
 

@@ -44,6 +44,7 @@ type ArtDetailModel struct {
 	Portrait    bool            `db:"portrait" json:"portrait"`
 	MadeYear    *int            `db:"made_year" json:"made_year,omitempty"`
 	Sold        bool            `db:"sold" json:"sold"`
+	Visible     bool            `db:"visible" json:"visible"`
 	Size        *string         `db:"size" json:"size,omitempty"`
 	PriceCents  *int            `db:"price_cents" json:"price_cents,omitempty"`
 	Images      []ImageModel    `json:"images"`
