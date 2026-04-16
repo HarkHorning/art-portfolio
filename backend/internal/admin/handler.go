@@ -192,7 +192,7 @@ func (h *Handler) PostArtCreate(c *gin.Context) {
 		return
 	}
 
-	visible := c.PostForm("visible") != "false"
+	visible := c.PostForm("published") == "true"
 	id, err := h.repo.AdminCreateArt(title, description, portrait, madeYear, size, priceCents, displayOrder, visible)
 	if err != nil {
 		slog.Error("admin: create art", "error", err)
@@ -231,7 +231,7 @@ func (h *Handler) PostArtUpdate(c *gin.Context) {
 	size := optString(c.PostForm("size"))
 	priceCents := optInt(c.PostForm("price_cents"))
 	sold := c.PostForm("sold") == "true"
-	visible := c.PostForm("visible") != "false"
+	visible := c.PostForm("published") == "true"
 	categoryIDs := parseIDs(c.PostFormArray("category_ids"))
 
 	if err := h.repo.AdminUpdateArt(id, title, description, portrait, madeYear, size, priceCents, sold, visible); err != nil {
@@ -386,6 +386,13 @@ func (h *Handler) PostPrintArchive(c *gin.Context) {
 		c.String(http.StatusInternalServerError, "archive failed")
 		return
 	}
+	c.Redirect(http.StatusSeeOther, "/admin/prints")
+}
+
+func (h *Handler) PostPrintTogglePublish(c *gin.Context) {
+	id := paramInt(c, "id")
+	visible := c.PostForm("visible") == "true"
+	h.repo.AdminTogglePrintVisible(id, visible)
 	c.Redirect(http.StatusSeeOther, "/admin/prints")
 }
 

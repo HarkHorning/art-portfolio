@@ -19,10 +19,10 @@ func (repo *Repo) Prints(size string, minPrice, maxPrice int) ([]models.PrintMod
 	prints := make([]models.PrintModel, 0)
 
 	query := fmt.Sprintf(`
-		SELECT p.id, p.art_tile_id, at.title, at.description, at.portrait, %s
+		SELECT p.id, p.art_tile_id, at.title, at.description, at.portrait, %s, p.visible
 		FROM prints p
 		JOIN art_tiles at ON p.art_tile_id = at.id
-		WHERE p.archived_at IS NULL AND at.archived_at IS NULL`,
+		WHERE p.archived_at IS NULL AND at.archived_at IS NULL AND p.visible = TRUE`,
 		printDisplayURLSubquery)
 
 	args := make([]any, 0)
@@ -61,7 +61,7 @@ func (repo *Repo) Prints(size string, minPrice, maxPrice int) ([]models.PrintMod
 func (repo *Repo) PrintByID(id int) (*models.PrintModel, error) {
 	var p models.PrintModel
 	err := repo.db.Get(&p, fmt.Sprintf(`
-		SELECT p.id, p.art_tile_id, at.title, at.description, at.portrait, %s
+		SELECT p.id, p.art_tile_id, at.title, at.description, at.portrait, %s, p.visible
 		FROM prints p
 		JOIN art_tiles at ON p.art_tile_id = at.id
 		WHERE p.id = ? AND p.archived_at IS NULL

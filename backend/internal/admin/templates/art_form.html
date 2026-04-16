@@ -53,11 +53,12 @@
   </div>
   {{end}}
   <div class="field">
-    <label>Visible on site</label>
-    <select name="visible">
-      <option value="true"  {{if or (not .Art) .Art.Visible}}selected{{end}}>Yes — shown publicly</option>
-      <option value="false" {{if and .Art (not .Art.Visible)}}selected{{end}}>No — hidden from public</option>
-    </select>
+    <label>Published</label>
+    <div class="checkbox-row">
+      <input type="checkbox" name="published" value="true"
+        {{if or (not .Art) .Art.Visible}}checked{{end}}>
+      <span>Show on public site</span>
+    </div>
   </div>
   <div class="field">
     <label>Categories</label>
