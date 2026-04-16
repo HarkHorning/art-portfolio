@@ -1,34 +1,37 @@
 {{define "print_size_list.html"}}
 <div id="size-list">
   {{if .Sizes}}
-  <table style="margin-bottom:1rem;">
+  <table style="margin-bottom:1.25rem;">
     <thead>
       <tr>
         <th>Size</th>
-        <th>Price</th>
-        <th>Stock</th>
-        <th>Status</th>
+        <th>Price (cents)</th>
+        <th>Quantity</th>
+        <th>Sold</th>
         <th></th>
       </tr>
     </thead>
     <tbody>
     {{range .Sizes}}
     <tr>
-      <td>{{.Size}}"</td>
-      <td>{{dollars .PriceCents}}</td>
-      <td>{{.QuantityInStock}}</td>
+      <td><input type="text" name="size" value="{{.Size}}" style="width:70px;" required></td>
+      <td><input type="number" name="price_cents" value="{{.PriceCents}}" style="width:90px;" required></td>
+      <td><input type="number" name="quantity_in_stock" value="{{.QuantityInStock}}" min="0" style="width:70px;"></td>
       <td>
-        {{if .Sold}}<span class="tag sold-badge">Sold</span>
-        {{else if eq .QuantityInStock 0}}<span class="tag" style="background:#fef3c7;color:#92400e;">Out of stock</span>
-        {{else}}<span class="tag" style="background:#dcfce7;color:#166534;">In stock</span>{{end}}
+        <select name="sold" style="width:70px;">
+          <option value="false" {{if not .Sold}}selected{{end}}>No</option>
+          <option value="true"  {{if .Sold}}selected{{end}}>Yes</option>
+        </select>
       </td>
-      <td>
-        <form method="POST" action="/admin/prints/{{$.PrintID}}/sizes/{{.Id}}/delete"
-              hx-post="/admin/prints/{{$.PrintID}}/sizes/{{.Id}}/delete"
-              hx-target="#size-list" hx-swap="outerHTML"
-              onsubmit="return confirm('Remove this size?')">
-          <button type="submit" class="btn btn-sm btn-danger">Remove</button>
-        </form>
+      <td style="white-space:nowrap;">
+        <button type="button" class="btn btn-sm btn-primary"
+                hx-post="/admin/prints/{{$.PrintID}}/sizes/{{.Id}}"
+                hx-include="closest tr"
+                hx-target="#size-list" hx-swap="outerHTML">Save</button>
+        <button type="button" class="btn btn-sm btn-danger"
+                hx-post="/admin/prints/{{$.PrintID}}/sizes/{{.Id}}/delete"
+                hx-target="#size-list" hx-swap="outerHTML"
+                hx-confirm="Remove this size?">Remove</button>
       </td>
     </tr>
     {{end}}

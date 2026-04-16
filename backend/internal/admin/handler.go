@@ -192,7 +192,8 @@ func (h *Handler) PostArtCreate(c *gin.Context) {
 		return
 	}
 
-	id, err := h.repo.AdminCreateArt(title, description, portrait, madeYear, size, priceCents, displayOrder)
+	visible := c.PostForm("visible") != "false"
+	id, err := h.repo.AdminCreateArt(title, description, portrait, madeYear, size, priceCents, displayOrder, visible)
 	if err != nil {
 		slog.Error("admin: create art", "error", err)
 		c.String(http.StatusInternalServerError, "create failed")
@@ -230,9 +231,10 @@ func (h *Handler) PostArtUpdate(c *gin.Context) {
 	size := optString(c.PostForm("size"))
 	priceCents := optInt(c.PostForm("price_cents"))
 	sold := c.PostForm("sold") == "true"
+	visible := c.PostForm("visible") != "false"
 	categoryIDs := parseIDs(c.PostFormArray("category_ids"))
 
-	if err := h.repo.AdminUpdateArt(id, title, description, portrait, madeYear, size, priceCents, sold); err != nil {
+	if err := h.repo.AdminUpdateArt(id, title, description, portrait, madeYear, size, priceCents, sold, visible); err != nil {
 		slog.Error("admin: update art", "error", err)
 		c.String(http.StatusInternalServerError, "update failed")
 		return
@@ -406,6 +408,19 @@ func (h *Handler) PostPrintSizeDelete(c *gin.Context) {
 	sizeID := paramInt(c, "psid")
 	if err := h.repo.AdminArchivePrintSize(sizeID); err != nil {
 		slog.Error("admin: archive print size", "error", err)
+	}
+	h.renderPrintSizeList(c, printID)
+}
+
+func (h *Handler) PostPrintSizeUpdate(c *gin.Context) {
+	printID := paramInt(c, "id")
+	sizeID := paramInt(c, "psid")
+	size := strings.TrimSpace(c.PostForm("size"))
+	priceCents := parseInt(c.PostForm("price_cents"), 0)
+	qty := parseInt(c.PostForm("quantity_in_stock"), 0)
+	sold := c.PostForm("sold") == "true"
+	if err := h.repo.AdminUpdatePrintSize(sizeID, size, priceCents, qty, sold); err != nil {
+		slog.Error("admin: update print size", "error", err)
 	}
 	h.renderPrintSizeList(c, printID)
 }

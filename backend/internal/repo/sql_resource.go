@@ -39,14 +39,14 @@ func (repo *Repo) ArtTiles(category, size string, minPrice, maxPrice int) ([]mod
 			FROM art_tiles at
 			JOIN art_categories ac ON at.id = ac.art_id
 			JOIN categories c ON ac.category_id = c.id
-			WHERE c.slug = ? AND at.archived_at IS NULL`, displayURLSubquery)
+			WHERE c.slug = ? AND at.archived_at IS NULL AND at.visible = TRUE`, displayURLSubquery)
 		args = append(args, category)
 	} else {
 		query = fmt.Sprintf(`
 			SELECT at.id, at.title, at.description, at.portrait, %s,
 			       at.made_year, at.sold, at.size, at.price_cents
 			FROM art_tiles at
-			WHERE at.archived_at IS NULL`, displayURLSubquery)
+			WHERE at.archived_at IS NULL AND at.visible = TRUE`, displayURLSubquery)
 	}
 
 	if size != "" {
@@ -87,7 +87,7 @@ func (repo *Repo) ArtSizes() ([]string, error) {
 func (repo *Repo) ArtByID(id int) (*models.ArtDetailModel, error) {
 	var art models.ArtDetailModel
 	err := repo.db.Get(&art, `
-		SELECT id, title, description, portrait, made_year, sold, size, price_cents
+		SELECT id, title, description, portrait, made_year, sold, visible, size, price_cents
 		FROM art_tiles
 		WHERE id = ? AND archived_at IS NULL
 	`, id)
