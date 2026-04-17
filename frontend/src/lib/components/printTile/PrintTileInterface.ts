@@ -1,6 +1,5 @@
 export interface PrintSizeInter {
     id: number;
-    print_id: number;
     size: string;
     price_cents: number;
     quantity_in_stock: number;
