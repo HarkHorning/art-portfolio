@@ -2,13 +2,20 @@
     import { page } from '$app/stores';
     import type { CategoryInter } from '$lib/components/filterSidebar/CategoryInterface';
 
+    interface ImageInter {
+        id: number;
+        variant: string;
+        url: string;
+        sort_order: number;
+    }
+
     interface ArtDetail {
         id: number;
         title: string;
         description: string;
         portrait: boolean;
-        url: string;
         categories: CategoryInter[];
+        images: ImageInter[];
         size?: string;
         price_cents?: number;
         sold: boolean;
@@ -21,11 +28,19 @@
     let art: ArtDetail | null = $state(null);
     let loading = $state(true);
     let error: string | null = $state(null);
+    let selectedIndex = $state(0);
+
+    let displayImages = $derived(
+        art ? art.images.filter(img => img.variant === 'low').sort((a, b) => a.sort_order - b.sort_order) : []
+    );
+
+    let currentImage = $derived(displayImages[selectedIndex] ?? null);
 
     $effect(() => {
         const id = $page.params.id;
         loading = true;
         error = null;
+        selectedIndex = 0;
 
         (async () => {
             try {
@@ -39,6 +54,14 @@
             }
         })();
     });
+
+    function prev() {
+        selectedIndex = (selectedIndex - 1 + displayImages.length) % displayImages.length;
+    }
+
+    function next() {
+        selectedIndex = (selectedIndex + 1) % displayImages.length;
+    }
 </script>
 
 <svelte:head>
@@ -55,7 +78,23 @@
     {:else if art}
         <div class="detail" class:portrait={art.portrait} class:landscape={!art.portrait}>
             <div class="image-wrap">
-                <img src={art.url} alt={art.title} />
+                {#if currentImage}
+                    <img src={currentImage.url} alt={art.title} />
+                {/if}
+                {#if displayImages.length > 1}
+                    <div class="thumbnails">
+                        {#each displayImages as img, i (img.id)}
+                            <button
+                                class="thumb"
+                                class:active={i === selectedIndex}
+                                onclick={() => selectedIndex = i}
+                                aria-label="View image {i + 1}"
+                            >
+                                <img src={img.url} alt="" />
+                            </button>
+                        {/each}
+                    </div>
+                {/if}
             </div>
             <div class="info">
                 <h1>{art.title}</h1>
@@ -128,6 +167,36 @@
         height: auto;
         border-radius: 8px;
         display: block;
+    }
+
+    .thumbnails {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    .thumb {
+        width: 60px;
+        height: 60px;
+        padding: 0;
+        border: 2px solid transparent;
+        border-radius: 4px;
+        cursor: pointer;
+        overflow: hidden;
+        background: none;
+        transition: border-color 0.15s;
+    }
+
+    .thumb img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 2px;
+    }
+
+    .thumb.active {
+        border-color: #111;
     }
 
     .info {
