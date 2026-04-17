@@ -76,7 +76,7 @@
     {:else if error}
         <p class="status error">{error}</p>
     {:else if art}
-        <div class="detail" class:portrait={art.portrait} class:landscape={!art.portrait}>
+        <div class="detail">
             <div class="image-wrap">
                 {#if currentImage}
                     <img src={currentImage.url} alt={art.title} />
@@ -146,20 +146,11 @@
         color: #000;
     }
 
-    /* Two-column layout for portrait pieces */
-    .detail.portrait {
+    .detail {
         display: grid;
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: 1fr 320px;
         gap: 3rem;
         align-items: start;
-    }
-
-    /* Single column for landscape pieces */
-    .detail.landscape {
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: 1.5rem;
-        max-width: 800px;
     }
 
     .image-wrap img {
@@ -266,7 +257,7 @@
     }
 
     @media (max-width: 650px) {
-        .detail.portrait {
+        .detail {
             grid-template-columns: 1fr;
         }
     }

@@ -75,15 +75,30 @@ func (h *Handler) GetArtByID(c *gin.Context) {
 		return
 	}
 
+	// Filter images by display selection; fall back to all if none selected.
+	if displayIDs, err := h.sqlResource.ArtDisplayImageIDs(id); err == nil && len(displayIDs) > 0 {
+		idSet := make(map[int]bool, len(displayIDs))
+		for _, did := range displayIDs {
+			idSet[did] = true
+		}
+		filtered := art.Images[:0]
+		for _, img := range art.Images {
+			if idSet[img.Id] {
+				filtered = append(filtered, img)
+			}
+		}
+		art.Images = filtered
+	}
+
 	// Keep the public API shape the frontend expects: top-level "url" field.
-	// Prefer the first high-quality image, fall back to first low.
+	// Prefer the first low-quality image for the tile display URL.
 	type artResponse struct {
 		*models.ArtDetailModel
 		URL string `json:"url"`
 	}
-	displayURL := firstImageURL(art.Images, "high")
+	displayURL := firstImageURL(art.Images, "low")
 	if displayURL == "" {
-		displayURL = firstImageURL(art.Images, "low")
+		displayURL = firstImageURL(art.Images, "high")
 	}
 	c.JSON(http.StatusOK, artResponse{ArtDetailModel: art, URL: displayURL})
 }

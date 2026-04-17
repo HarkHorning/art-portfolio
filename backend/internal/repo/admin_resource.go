@@ -201,6 +201,56 @@ func (repo *Repo) AdminArchivePrintSize(id int) error {
 	return err
 }
 
+// ── Display Image Selections ─────────────────────────────────────────────────
+
+func (repo *Repo) AdminArtDisplayImageIDs(artID int) ([]int, error) {
+	var ids []int
+	err := repo.db.Select(&ids, `SELECT image_id FROM art_display_images WHERE art_tile_id = ?`, artID)
+	return ids, err
+}
+
+func (repo *Repo) AdminSetArtDisplayImages(artID int, imageIDs []int) error {
+	tx, err := repo.db.Begin()
+	if err != nil {
+		return err
+	}
+	if _, err := tx.Exec(`DELETE FROM art_display_images WHERE art_tile_id = ?`, artID); err != nil {
+		tx.Rollback()
+		return err
+	}
+	for _, imgID := range imageIDs {
+		if _, err := tx.Exec(`INSERT INTO art_display_images (art_tile_id, image_id) VALUES (?, ?)`, artID, imgID); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+	return tx.Commit()
+}
+
+func (repo *Repo) AdminPrintDisplayImageIDs(printID int) ([]int, error) {
+	var ids []int
+	err := repo.db.Select(&ids, `SELECT image_id FROM print_display_images WHERE print_id = ?`, printID)
+	return ids, err
+}
+
+func (repo *Repo) AdminSetPrintDisplayImages(printID int, imageIDs []int) error {
+	tx, err := repo.db.Begin()
+	if err != nil {
+		return err
+	}
+	if _, err := tx.Exec(`DELETE FROM print_display_images WHERE print_id = ?`, printID); err != nil {
+		tx.Rollback()
+		return err
+	}
+	for _, imgID := range imageIDs {
+		if _, err := tx.Exec(`INSERT INTO print_display_images (print_id, image_id) VALUES (?, ?)`, printID, imgID); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+	return tx.Commit()
+}
+
 // ── Categories ───────────────────────────────────────────────────────────────
 
 func (repo *Repo) AdminCreateCategory(name, slug string) error {

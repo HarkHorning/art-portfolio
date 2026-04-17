@@ -94,13 +94,21 @@ func templateFuncs() template.FuncMap {
 			}
 			return false
 		},
+		"contains": func(ids []int, id int) bool {
+			for _, i := range ids {
+				if i == id {
+					return true
+				}
+			}
+			return false
+		},
 	}
 }
 
 func (h *Handler) render(c *gin.Context, name string, data any) {
 	c.Header("Content-Type", "text/html; charset=utf-8")
 
-	isPartial := name == "image_list.html" || name == "print_size_list.html" || name == "login.html"
+	isPartial := name == "image_list.html" || name == "print_size_list.html" || name == "print_image_list.html" || name == "login.html"
 	var files []string
 	if isPartial {
 		files = []string{"templates/" + name}
@@ -110,7 +118,7 @@ func (h *Handler) render(c *gin.Context, name string, data any) {
 			files = append(files, "templates/image_list.html")
 		}
 		if name == "print_form.html" {
-			files = append(files, "templates/print_size_list.html")
+			files = append(files, "templates/print_size_list.html", "templates/print_image_list.html")
 		}
 	}
 
@@ -215,10 +223,12 @@ func (h *Handler) GetArtEdit(c *gin.Context) {
 		return
 	}
 	cats, _ := h.repo.AllCategories()
+	displayIDs, _ := h.repo.AdminArtDisplayImageIDs(id)
 	h.render(c, "art_form.html", gin.H{
-		"Art":        art,
-		"Categories": cats,
-		"Action":     fmt.Sprintf("/admin/art/%d", id),
+		"Art":             art,
+		"Categories":      cats,
+		"Action":          fmt.Sprintf("/admin/art/%d", id),
+		"DisplayImageIDs": displayIDs,
 	})
 }
 
@@ -310,7 +320,8 @@ func (h *Handler) PostImageUpload(c *gin.Context) {
 	}
 
 	imgs, _ := h.repo.AdminImagesByArtID(artID)
-	h.render(c, "image_list.html", gin.H{"Images": imgs, "ArtID": artID})
+	displayIDs, _ := h.repo.AdminArtDisplayImageIDs(artID)
+	h.render(c, "image_list.html", gin.H{"Images": imgs, "ArtID": artID, "DisplayImageIDs": displayIDs})
 }
 
 func (h *Handler) DeleteImage(c *gin.Context) {
@@ -328,7 +339,43 @@ func (h *Handler) DeleteImage(c *gin.Context) {
 	}
 
 	imgs, _ := h.repo.AdminImagesByArtID(artID)
-	h.render(c, "image_list.html", gin.H{"Images": imgs, "ArtID": artID})
+	displayIDs, _ := h.repo.AdminArtDisplayImageIDs(artID)
+	h.render(c, "image_list.html", gin.H{"Images": imgs, "ArtID": artID, "DisplayImageIDs": displayIDs})
+}
+
+func (h *Handler) PostArtDisplayImages(c *gin.Context) {
+	artID := paramInt(c, "id")
+	imageIDs := parseIDs(c.PostFormArray("display_image_ids"))
+	if err := h.repo.AdminSetArtDisplayImages(artID, imageIDs); err != nil {
+		slog.Error("admin: set art display images", "error", err)
+	}
+	imgs, _ := h.repo.AdminImagesByArtID(artID)
+	displayIDs, _ := h.repo.AdminArtDisplayImageIDs(artID)
+	h.render(c, "image_list.html", gin.H{"Images": imgs, "ArtID": artID, "DisplayImageIDs": displayIDs})
+}
+
+func (h *Handler) PostPrintDisplayImages(c *gin.Context) {
+	printID := paramInt(c, "id")
+	imageIDs := parseIDs(c.PostFormArray("display_image_ids"))
+	if err := h.repo.AdminSetPrintDisplayImages(printID, imageIDs); err != nil {
+		slog.Error("admin: set print display images", "error", err)
+	}
+	h.renderPrintImageList(c, printID)
+}
+
+func (h *Handler) renderPrintImageList(c *gin.Context, printID int) {
+	p, err := h.repo.PrintByID(printID)
+	if err != nil {
+		c.String(http.StatusNotFound, "not found")
+		return
+	}
+	artImgs, _ := h.repo.AdminImagesByArtID(p.ArtTileId)
+	displayIDs, _ := h.repo.AdminPrintDisplayImageIDs(printID)
+	h.render(c, "print_image_list.html", gin.H{
+		"PrintID":         printID,
+		"Images":          artImgs,
+		"DisplayImageIDs": displayIDs,
+	})
 }
 
 func (h *Handler) uploadToGCS(ctx context.Context, objectName string, r io.Reader, contentType string) (string, error) {
@@ -384,7 +431,13 @@ func (h *Handler) GetPrintEdit(c *gin.Context) {
 		c.String(http.StatusNotFound, "not found")
 		return
 	}
-	h.render(c, "print_form.html", gin.H{"Print": p})
+	artImgs, _ := h.repo.AdminImagesByArtID(p.ArtTileId)
+	displayIDs, _ := h.repo.AdminPrintDisplayImageIDs(id)
+	h.render(c, "print_form.html", gin.H{
+		"Print":           p,
+		"ArtImages":       artImgs,
+		"DisplayImageIDs": displayIDs,
+	})
 }
 
 func (h *Handler) PostPrintArchive(c *gin.Context) {

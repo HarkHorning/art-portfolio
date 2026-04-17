@@ -75,7 +75,43 @@ func (repo *Repo) PrintByID(id int) (*models.PrintModel, error) {
 		ORDER BY price_cents ASC`, id); err != nil {
 		return nil, fmt.Errorf("could not load print sizes: %w", err)
 	}
+
+	// Load display images: print selection → art selection → all art images
+	var printImgIDs []int
+	repo.db.Select(&printImgIDs, `SELECT image_id FROM print_display_images WHERE print_id = ?`, id)
+	if len(printImgIDs) > 0 {
+		p.Images = loadImagesByIDs(repo, printImgIDs)
+	} else {
+		var artImgIDs []int
+		repo.db.Select(&artImgIDs, `SELECT image_id FROM art_display_images WHERE art_tile_id = ?`, p.ArtTileId)
+		if len(artImgIDs) > 0 {
+			p.Images = loadImagesByIDs(repo, artImgIDs)
+		} else {
+			imgs := make([]models.ImageModel, 0)
+			repo.db.Select(&imgs, `
+				SELECT id, art_tile_id, variant, url, filename, sort_order
+				FROM images WHERE art_tile_id = ? AND variant = 'low'
+				ORDER BY sort_order ASC`, p.ArtTileId)
+			p.Images = imgs
+		}
+	}
+
 	return &p, nil
+}
+
+func loadImagesByIDs(repo *Repo, ids []int) []models.ImageModel {
+	placeholders := make([]string, len(ids))
+	args := make([]any, len(ids))
+	for i, id := range ids {
+		placeholders[i] = "?"
+		args[i] = id
+	}
+	imgs := make([]models.ImageModel, 0)
+	repo.db.Select(&imgs, fmt.Sprintf(`
+		SELECT id, art_tile_id, variant, url, filename, sort_order
+		FROM images WHERE id IN (%s)
+		ORDER BY sort_order ASC`, strings.Join(placeholders, ",")), args...)
+	return imgs
 }
 
 func (repo *Repo) PrintSizes() ([]string, error) {
