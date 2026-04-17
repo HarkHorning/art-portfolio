@@ -15,6 +15,14 @@
   <h2>Sizes</h2>
   {{template "print_size_list.html" (dict "PrintID" .Print.Id "Sizes" .Print.Sizes)}}
 
+  <div class="form-card" style="margin-top:1.5rem;">
+    <h2>Display Images</h2>
+    <p style="margin-top:0.25rem;margin-bottom:1rem;font-size:0.85rem;color:#888;">Select which images appear on this print's page. If none selected, falls back to the artwork's display selection.</p>
+    <div id="print-image-list">
+      {{template "print_image_list.html" (dict "PrintID" .Print.Id "Images" .ArtImages "DisplayImageIDs" .DisplayImageIDs)}}
+    </div>
+  </div>
+
 {{else}}
   <form method="POST" action="/admin/prints" class="form-card">
     <div class="field">

@@ -34,6 +34,7 @@ func RegisterRoutes(rg *gin.RouterGroup, r *repo.Repo, tmplFS fs.FS, cfg config.
 		auth.POST("/art/:id/publish", h.PostArtTogglePublish)
 		auth.POST("/art/:id/images", h.PostImageUpload)
 		auth.POST("/art/:id/images/:imageId/delete", h.DeleteImage)
+		auth.POST("/art/:id/display-images", h.PostArtDisplayImages)
 
 		auth.GET("/prints", h.GetPrintList)
 		auth.GET("/prints/new", h.GetPrintNew)
@@ -44,6 +45,7 @@ func RegisterRoutes(rg *gin.RouterGroup, r *repo.Repo, tmplFS fs.FS, cfg config.
 		auth.POST("/prints/:id/sizes", h.PostPrintSizeAdd)
 		auth.POST("/prints/:id/sizes/:psid", h.PostPrintSizeUpdate)
 		auth.POST("/prints/:id/sizes/:psid/delete", h.PostPrintSizeDelete)
+		auth.POST("/prints/:id/display-images", h.PostPrintDisplayImages)
 
 		auth.GET("/categories", h.GetCategories)
 		auth.POST("/categories", h.PostCategoryCreate)

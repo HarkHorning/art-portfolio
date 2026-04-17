@@ -123,6 +123,12 @@ func (repo *Repo) ArtByID(id int) (*models.ArtDetailModel, error) {
 	return &art, nil
 }
 
+func (repo *Repo) ArtDisplayImageIDs(artID int) ([]int, error) {
+	var ids []int
+	err := repo.db.Select(&ids, `SELECT image_id FROM art_display_images WHERE art_tile_id = ?`, artID)
+	return ids, err
+}
+
 func (repo *Repo) AllCategories() ([]models.CategoryModel, error) {
 	categories := make([]models.CategoryModel, 0)
 	err := repo.db.Select(&categories, `SELECT id, name, slug FROM categories ORDER BY name ASC`)

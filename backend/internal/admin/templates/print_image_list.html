@@ -1,9 +1,5 @@
-{{define "image_list.html"}}
-{{template "image_list_inner" .}}
-{{end}}
-
-{{define "image_list_inner"}}
-{{$artID := .ArtID}}
+{{define "print_image_list.html"}}
+{{$printID := .PrintID}}
 {{$images := .Images}}
 {{$displayIDs := .DisplayImageIDs}}
 {{if $images}}
@@ -17,25 +13,19 @@
         {{if contains $displayIDs .Id}}checked{{end}}>
       Show
     </label>
-    <form hx-post="/admin/art/{{$artID}}/images/{{.Id}}/delete"
-          hx-target="#image-list"
-          hx-swap="innerHTML"
-          hx-confirm="Delete this image?">
-      <button type="submit" class="del">✕</button>
-    </form>
   </div>
   {{end}}
 </div>
 <button type="button"
-        hx-post="/admin/art/{{$artID}}/display-images"
+        hx-post="/admin/prints/{{$printID}}/display-images"
         hx-include="[name='display_image_ids']"
-        hx-target="#image-list"
+        hx-target="#print-image-list"
         hx-swap="innerHTML"
         class="btn btn-primary"
         style="margin-top:1rem;">
   Save Display Selection
 </button>
 {{else}}
-<p style="color:#888;font-size:0.85rem;">No images uploaded yet.</p>
+<p style="color:#888;font-size:0.85rem;">No images on the linked artwork yet.</p>
 {{end}}
 {{end}}

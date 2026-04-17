@@ -2,6 +2,13 @@
     import { page } from '$app/stores';
     import type { PrintSizeInter } from '$lib/components/printTile/PrintTileInterface';
 
+    interface ImageInter {
+        id: number;
+        variant: string;
+        url: string;
+        sort_order: number;
+    }
+
     interface PrintDetail {
         id: number;
         title: string;
@@ -9,24 +16,32 @@
         portrait: boolean;
         url: string;
         sizes: PrintSizeInter[];
+        images: ImageInter[];
     }
 
     let print: PrintDetail | null = $state(null);
     let loading = $state(true);
     let error: string | null = $state(null);
     let selectedSize: PrintSizeInter | null = $state(null);
+    let selectedIndex = $state(0);
+
+    let displayImages = $derived(
+        print ? print.images.filter(img => img.variant === 'low').sort((a, b) => a.sort_order - b.sort_order) : []
+    );
+
+    let currentImage = $derived(displayImages[selectedIndex] ?? null);
 
     $effect(() => {
         const id = $page.params.id;
         loading = true;
         error = null;
+        selectedIndex = 0;
 
         (async () => {
             try {
                 const res = await fetch(`/api/v1/prints/${id}`);
                 if (!res.ok) throw new Error();
                 print = await res.json();
-                // Default to cheapest available size
                 if (print) {
                     selectedSize = print.sizes.find(s => !s.sold && s.quantity_in_stock > 0) ?? print.sizes[0] ?? null;
                 }
@@ -59,9 +74,27 @@
     {:else if error}
         <p class="status error">{error}</p>
     {:else if print}
-        <div class="detail" class:portrait={print.portrait} class:landscape={!print.portrait}>
+        <div class="detail">
             <div class="image-wrap">
-                <img src={print.url} alt={print.title} />
+                {#if currentImage}
+                    <img src={currentImage.url} alt={print.title} />
+                {:else}
+                    <img src={print.url} alt={print.title} />
+                {/if}
+                {#if displayImages.length > 1}
+                    <div class="thumbnails">
+                        {#each displayImages as img, i (img.id)}
+                            <button
+                                class="thumb"
+                                class:active={i === selectedIndex}
+                                onclick={() => selectedIndex = i}
+                                aria-label="View image {i + 1}"
+                            >
+                                <img src={img.url} alt="" />
+                            </button>
+                        {/each}
+                    </div>
+                {/if}
             </div>
             <div class="info">
                 <h1>{print.title}</h1>
@@ -123,18 +156,11 @@
 
     .back:hover { color: #000; }
 
-    .detail.portrait {
+    .detail {
         display: grid;
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: 1fr 320px;
         gap: 3rem;
         align-items: start;
-    }
-
-    .detail.landscape {
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: 1.5rem;
-        max-width: 800px;
     }
 
     .image-wrap img {
@@ -143,6 +169,34 @@
         border-radius: 8px;
         display: block;
     }
+
+    .thumbnails {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    .thumb {
+        width: 60px;
+        height: 60px;
+        padding: 0;
+        border: 2px solid transparent;
+        border-radius: 4px;
+        cursor: pointer;
+        overflow: hidden;
+        background: none;
+        transition: border-color 0.15s;
+    }
+
+    .thumb img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 2px;
+    }
+
+    .thumb.active { border-color: #111; }
 
     .info { padding-top: 0.5rem; }
 
@@ -197,6 +251,6 @@
     .error { color: #c00; }
 
     @media (max-width: 650px) {
-        .detail.portrait { grid-template-columns: 1fr; }
+        .detail { grid-template-columns: 1fr; }
     }
 </style>
