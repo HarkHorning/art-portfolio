@@ -10,25 +10,22 @@
     } = $props();
 
     const availableSizes = sizes.filter(s => !s.sold && s.quantity_in_stock > 0);
-    const fromPrice = availableSizes.length > 0
-        ? Math.min(...availableSizes.map(s => s.price_cents))
-        : null;
-
-    function formatPrice(cents: number): string {
-        return `$${(cents / 100).toFixed(0)}`;
-    }
 </script>
 
-<a href="/prints/{id}" class={portrait ? 'portrait' : 'landscape'} class:unavailable={availableSizes.length === 0}>
+<a href="/shop/{id}" class={portrait ? 'portrait' : 'landscape'} class:unavailable={availableSizes.length === 0}>
     <img src={url} alt={title} class="image" />
     <div class="meta">
         <h2>{title}</h2>
         <div class="details">
-            {#if fromPrice !== null}
-                <span class="price">from {formatPrice(fromPrice)}</span>
-                <span class="size-count">{availableSizes.length} {availableSizes.length === 1 ? 'size' : 'sizes'}</span>
-            {:else}
+            {#if availableSizes.length === 0}
                 <span class="sold-label">Out of stock</span>
+            {/if}
+            <!-- Price: re-enable by wrapping the block below in {#if true} -->
+            {#if false}
+                {#if fromPrice !== null}
+                    <span class="price">from {formatPrice(fromPrice)}</span>
+                    <span class="size-count">{availableSizes.length} {availableSizes.length === 1 ? 'size' : 'sizes'}</span>
+                {/if}
             {/if}
         </div>
     </div>

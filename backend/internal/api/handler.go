@@ -153,6 +153,26 @@ func (h *Handler) GetPrintSizes(c *gin.Context) {
 	c.JSON(http.StatusOK, sizes)
 }
 
+func (h *Handler) GetSiteContent(c *gin.Context) {
+	key := c.Param("key")
+	value, err := h.sqlResource.SiteContent(key)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"key": key, "value": value})
+}
+
+func (h *Handler) GetBanners(c *gin.Context) {
+	banners, err := h.sqlResource.ActiveBanners()
+	if err != nil {
+		slog.Error("failed to get banners", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get banners"})
+		return
+	}
+	c.JSON(http.StatusOK, banners)
+}
+
 func firstImageURL(images []models.ImageModel, variant string) string {
 	for _, img := range images {
 		if img.Variant == variant {

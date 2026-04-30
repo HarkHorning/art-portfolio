@@ -64,6 +64,8 @@
             </ul>
         {/if}
 
+        <!-- Price filter: re-enable by changing {#if false} to {#if true} -->
+        {#if false}
         <span class="label" style="margin-top: 1.25rem;">Price</span>
         <ul>
             {#each priceRanges as range, i}
@@ -74,6 +76,7 @@
                 </li>
             {/each}
         </ul>
+        {/if}
     </div>
 </aside>
 

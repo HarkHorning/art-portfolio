@@ -55,14 +55,10 @@
 </script>
 
 <svelte:head>
-    <title>Hark Horning — Prints</title>
+    <title>Hark Horning — Shop</title>
 </svelte:head>
 
-<div class="prints-page">
-    <div class="header">
-        <h2 class="page-header">Prints:</h2>
-    </div>
-
+<div class="shop-page">
     <div class="content" style="gap: {sidebarOpen ? '2rem' : '0'}">
         <PrintFilter
             {sizes}
@@ -85,13 +81,7 @@
 </div>
 
 <style>
-    .prints-page {
-        width: 100%;
-    }
-
-    .page-header {
-        font-weight: 400;
-    }
+    .shop-page { width: 100%; }
 
     .content {
         display: flex;

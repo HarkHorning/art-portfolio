@@ -1,6 +1,7 @@
 <script lang="ts">
     import ArtGrid from "$lib/components/artGrid/ArtGrid.svelte";
     import FilterSidebar from "$lib/components/filterSidebar/FilterSidebar.svelte";
+    import HeroBanner from "$lib/components/heroBanner/HeroBanner.svelte";
     import type { ArtTileInter } from "$lib/components/artTile/ArtTileInterface";
     import type { CategoryInter } from "$lib/components/filterSidebar/CategoryInterface";
 
@@ -15,6 +16,7 @@
     let tiles: ArtTileInter[] = $state([]);
     let categories: CategoryInter[] = $state([]);
     let sizes: string[] = $state([]);
+    let banners: { id: number; art_tile_id: number; url: string; title: string; portrait: boolean }[] = $state([]);
     let loading = $state(true);
     let error: string | null = $state(null);
     let activeCategory: string | null = $state(null);
@@ -25,12 +27,14 @@
     $effect(() => {
         (async () => {
             try {
-                const [catRes, sizeRes] = await Promise.all([
+                const [catRes, sizeRes, bannerRes] = await Promise.all([
                     fetch('/api/v1/categories'),
                     fetch('/api/v1/art-sizes'),
+                    fetch('/api/v1/banners'),
                 ]);
                 if (catRes.ok) categories = await catRes.json();
                 if (sizeRes.ok) sizes = await sizeRes.json();
+                if (bannerRes.ok) banners = await bannerRes.json();
             } catch {}
         })();
     });
@@ -64,15 +68,13 @@
 </script>
 
 <svelte:head>
-    <title>Hark Horning — Work</title>
+    <title>Hark Horning</title>
 </svelte:head>
 
 <div class="art-page">
-    <div class="header">
-        <h2 class="page-header">My work:</h2>
-    </div>
+    <HeroBanner {banners} />
 
-    <div class="content">
+    <div class="content" style="gap: {sidebarOpen ? '2rem' : '0'}">
         <FilterSidebar
             {categories}
             {sizes}
@@ -97,13 +99,7 @@
 </div>
 
 <style>
-    .art-page {
-        width: 100%;
-    }
-
-    .page-header {
-        font-weight: 400;
-    }
+    .art-page { width: 100%; }
 
     .content {
         display: flex;

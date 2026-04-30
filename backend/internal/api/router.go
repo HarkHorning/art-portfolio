@@ -46,6 +46,8 @@ func Routes(db *sqlx.DB, cfg config.Config) *gin.Engine {
 		v1.GET("/prints", handle.GetPrints)
 		v1.GET("/prints/:id", handle.GetPrintByID)
 		v1.GET("/print-sizes", handle.GetPrintSizes)
+		v1.GET("/banners", handle.GetBanners)
+		v1.GET("/content/:key", handle.GetSiteContent)
 	}
 
 	return router

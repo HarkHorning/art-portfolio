@@ -5,8 +5,8 @@
 <nav>
     <a href="/" class="site-title">Hark Horning</a>
     <div class="links">
-        <a href="/prints" class:active={$page.url.pathname.startsWith('/prints')}>Prints</a>
-        <a href="/" class:active={$page.url.pathname === '/'}>Work</a>
+        <a href="/gallery" class:active={$page.url.pathname.startsWith('/gallery') || $page.url.pathname.startsWith('/art')}>Gallery</a>
+        <a href="/shop" class:active={$page.url.pathname.startsWith('/shop')}>Shop</a>
         <a href="/about" class:active={$page.url.pathname === '/about'}>About</a>
     </div>
 </nav>
@@ -41,11 +41,6 @@
         transition: color 0.2s;
     }
 
-    a:hover {
-        color: #000;
-    }
-
-    a.active {
-        color: #000;
-    }
+    a:hover { color: #000; }
+    a.active { color: #000; }
 </style>

@@ -1,0 +1,44 @@
+{{define "content"}}
+<div class="page-actions">
+  <h1>Content</h1>
+</div>
+
+<div class="form-card" style="margin-bottom:1.5rem;">
+  <h2>Artist Photo</h2>
+  <p style="font-size:0.85rem;color:#888;margin-bottom:0.75rem;">Displayed on the About page alongside your bio.</p>
+  {{if index .Content "artist_photo_url"}}
+  <div style="margin-bottom:1rem;">
+    <img src="{{index .Content "artist_photo_url"}}" style="height:130px;width:130px;object-fit:cover;border-radius:6px;border:1px solid #e5e5e5;">
+  </div>
+  {{end}}
+  <form method="POST" action="/admin/content/artist-photo" enctype="multipart/form-data">
+    <div class="field">
+      <label>Photo (JPEG, PNG, or WebP — max 20 MB)</label>
+      <input type="file" name="photo" accept="image/*" required style="font-size:0.85rem;">
+    </div>
+    <button type="submit" class="btn btn-primary">Upload</button>
+  </form>
+</div>
+
+<div class="form-card" style="margin-bottom:1.5rem;">
+  <h2>Home Introduction</h2>
+  <p style="font-size:0.85rem;color:#888;margin-bottom:0.75rem;">Displayed on the landing page below the banner.</p>
+  <form method="POST" action="/admin/content/home_intro">
+    <div class="field">
+      <textarea name="value" rows="4" style="width:100%;font-family:inherit;font-size:0.9rem;padding:0.5rem;border:1px solid #ccc;border-radius:4px;resize:vertical;">{{index .Content "home_intro"}}</textarea>
+    </div>
+    <button type="submit" class="btn btn-primary" style="margin-top:0.75rem;">Save</button>
+  </form>
+</div>
+
+<div class="form-card">
+  <h2>About Page</h2>
+  <p style="font-size:0.85rem;color:#888;margin-bottom:0.75rem;">Use blank lines to separate paragraphs.</p>
+  <form method="POST" action="/admin/content/about_content">
+    <div class="field">
+      <textarea name="value" rows="12" style="width:100%;font-family:inherit;font-size:0.9rem;padding:0.5rem;border:1px solid #ccc;border-radius:4px;resize:vertical;">{{index .Content "about_content"}}</textarea>
+    </div>
+    <button type="submit" class="btn btn-primary" style="margin-top:0.75rem;">Save</button>
+  </form>
+</div>
+{{end}}

@@ -1,0 +1,10 @@
+DROP TABLE IF EXISTS banners;
+
+CREATE TABLE banners (
+    id          INT AUTO_INCREMENT PRIMARY KEY,
+    art_tile_id INT NOT NULL,
+    sort_order  INT NOT NULL DEFAULT 0,
+    active      BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (art_tile_id) REFERENCES art_tiles(id) ON DELETE CASCADE
+);

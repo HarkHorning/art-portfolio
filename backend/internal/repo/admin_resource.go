@@ -201,6 +201,70 @@ func (repo *Repo) AdminArchivePrintSize(id int) error {
 	return err
 }
 
+// ── Site Content ─────────────────────────────────────────────────────────────
+
+func (repo *Repo) AdminAllSiteContent() (map[string]string, error) {
+	rows, err := repo.db.Query("SELECT `key`, value FROM site_content ORDER BY `key` ASC")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	result := make(map[string]string)
+	for rows.Next() {
+		var k, v string
+		if err := rows.Scan(&k, &v); err != nil {
+			return nil, err
+		}
+		result[k] = v
+	}
+	return result, nil
+}
+
+func (repo *Repo) AdminSetSiteContent(key, value string) error {
+	_, err := repo.db.Exec(
+		"INSERT INTO site_content (`key`, value) VALUES (?, ?) ON DUPLICATE KEY UPDATE value = ?",
+		key, value, value)
+	return err
+}
+
+// ── Banners ──────────────────────────────────────────────────────────────────
+
+func (repo *Repo) AdminAllBanners() ([]models.BannerModel, error) {
+	banners := make([]models.BannerModel, 0)
+	err := repo.db.Select(&banners, fmt.Sprintf(`
+		SELECT b.id, b.art_tile_id, at.title, %s, at.portrait, b.sort_order, b.active
+		FROM banners b
+		JOIN art_tiles at ON b.art_tile_id = at.id
+		WHERE at.archived_at IS NULL
+		ORDER BY b.sort_order ASC, b.id ASC`, displayURLSubquery))
+	return banners, err
+}
+
+func (repo *Repo) AdminAddBanner(artTileID, sortOrder int) (int64, error) {
+	res, err := repo.db.Exec(`
+		INSERT INTO banners (art_tile_id, sort_order) VALUES (?, ?)`,
+		artTileID, sortOrder)
+	if err != nil {
+		return 0, err
+	}
+	return res.LastInsertId()
+}
+
+func (repo *Repo) AdminDeleteBanner(id int) error {
+	_, err := repo.db.Exec(`DELETE FROM banners WHERE id = ?`, id)
+	return err
+}
+
+func (repo *Repo) AdminToggleBannerActive(id int, active bool) error {
+	_, err := repo.db.Exec(`UPDATE banners SET active = ? WHERE id = ?`, active, id)
+	return err
+}
+
+func (repo *Repo) AdminUpdateBannerOrder(id, sortOrder int) error {
+	_, err := repo.db.Exec(`UPDATE banners SET sort_order = ? WHERE id = ?`, sortOrder, id)
+	return err
+}
+
 // ── Display Image Selections ─────────────────────────────────────────────────
 
 func (repo *Repo) AdminArtDisplayImageIDs(artID int) ([]int, error) {
