@@ -123,6 +123,23 @@ func (repo *Repo) ArtByID(id int) (*models.ArtDetailModel, error) {
 	return &art, nil
 }
 
+func (repo *Repo) SiteContent(key string) (string, error) {
+	var value string
+	err := repo.db.Get(&value, "SELECT value FROM site_content WHERE `key` = ?", key)
+	return value, err
+}
+
+func (repo *Repo) ActiveBanners() ([]models.BannerModel, error) {
+	banners := make([]models.BannerModel, 0)
+	err := repo.db.Select(&banners, fmt.Sprintf(`
+		SELECT b.id, b.art_tile_id, at.title, %s, at.portrait, b.sort_order, b.active
+		FROM banners b
+		JOIN art_tiles at ON b.art_tile_id = at.id
+		WHERE b.active = TRUE AND at.archived_at IS NULL
+		ORDER BY b.sort_order ASC, b.id ASC`, displayURLSubquery))
+	return banners, err
+}
+
 func (repo *Repo) ArtDisplayImageIDs(artID int) ([]int, error) {
 	var ids []int
 	err := repo.db.Select(&ids, `SELECT image_id FROM art_display_images WHERE art_tile_id = ?`, artID)

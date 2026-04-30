@@ -19,6 +19,7 @@
 | Purchase flow (Stripe) | Medium | Not started |
 | Image protection + CAPTCHA | Medium | Not started |
 | Orders admin UI | Medium | Not started (schema done) |
+| Google Analytics 4 | Low | Not started |
 | Open Graph meta tags | Low | Not started |
 | Logging TUI | Low | Not started |
 | Tests | Low | Not started |

@@ -1,7 +1,8 @@
 <script lang="ts">
-    import PrintGrid from '$lib/components/printGrid/PrintGrid.svelte';
-    import PrintFilter from '$lib/components/printFilter/PrintFilter.svelte';
-    import type { PrintTileInter } from '$lib/components/printTile/PrintTileInterface';
+    import ArtGrid from "$lib/components/artGrid/ArtGrid.svelte";
+    import FilterSidebar from "$lib/components/filterSidebar/FilterSidebar.svelte";
+    import type { ArtTileInter } from "$lib/components/artTile/ArtTileInterface";
+    import type { CategoryInter } from "$lib/components/filterSidebar/CategoryInterface";
 
     const priceRanges = [
         { min: -1,    max: -1    },
@@ -11,10 +12,12 @@
         { min: 10001, max: -1    },
     ];
 
-    let prints: PrintTileInter[] = $state([]);
+    let tiles: ArtTileInter[] = $state([]);
+    let categories: CategoryInter[] = $state([]);
     let sizes: string[] = $state([]);
     let loading = $state(true);
     let error: string | null = $state(null);
+    let activeCategory: string | null = $state(null);
     let activeSize: string | null = $state(null);
     let activePriceRange = $state(0);
     let sidebarOpen = $state(true);
@@ -22,13 +25,18 @@
     $effect(() => {
         (async () => {
             try {
-                const res = await fetch('/api/v1/print-sizes');
-                if (res.ok) sizes = await res.json();
+                const [catRes, sizeRes] = await Promise.all([
+                    fetch('/api/v1/categories'),
+                    fetch('/api/v1/art-sizes'),
+                ]);
+                if (catRes.ok) categories = await catRes.json();
+                if (sizeRes.ok) sizes = await sizeRes.json();
             } catch {}
         })();
     });
 
     $effect(() => {
+        const category = activeCategory;
         const size = activeSize;
         const range = priceRanges[activePriceRange];
         loading = true;
@@ -37,16 +45,17 @@
         (async () => {
             try {
                 const params = new URLSearchParams();
+                if (category) params.set('category', category);
                 if (size) params.set('size', size);
                 if (range.min >= 0) params.set('min_price', String(range.min));
                 if (range.max >= 0) params.set('max_price', String(range.max));
 
-                const url = `/api/v1/prints${params.size ? '?' + params.toString() : ''}`;
+                const url = `/api/v1/art${params.size ? '?' + params.toString() : ''}`;
                 const res = await fetch(url);
                 if (!res.ok) throw new Error();
-                prints = (await res.json()) ?? [];
+                tiles = (await res.json()) ?? [];
             } catch {
-                error = 'Unable to load prints. Please try again later.';
+                error = "Unable to load artwork. Please try again later.";
             } finally {
                 loading = false;
             }
@@ -55,20 +64,19 @@
 </script>
 
 <svelte:head>
-    <title>Hark Horning — Prints</title>
+    <title>Hark Horning — Gallery</title>
 </svelte:head>
 
-<div class="prints-page">
-    <div class="header">
-        <h2 class="page-header">Prints:</h2>
-    </div>
-
+<div class="art-page">
     <div class="content" style="gap: {sidebarOpen ? '2rem' : '0'}">
-        <PrintFilter
+        <FilterSidebar
+            {categories}
             {sizes}
+            active={activeCategory}
             {activeSize}
             {activePriceRange}
             open={sidebarOpen}
+            onSelect={(slug) => activeCategory = slug}
             onSizeSelect={(size) => activeSize = size}
             onPriceSelect={(i) => activePriceRange = i}
         />
@@ -79,19 +87,13 @@
             >
                 {sidebarOpen ? '‹ Filters' : 'Filters ›'}
             </button>
-            <PrintGrid {prints} {loading} {error} />
+            <ArtGrid {tiles} {loading} {error} />
         </div>
     </div>
 </div>
 
 <style>
-    .prints-page {
-        width: 100%;
-    }
-
-    .page-header {
-        font-weight: 400;
-    }
+    .art-page { width: 100%; }
 
     .content {
         display: flex;

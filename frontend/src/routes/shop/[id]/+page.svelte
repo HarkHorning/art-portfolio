@@ -116,11 +116,11 @@
                     <!-- Price row: re-enable by changing {#if false} to {#if selectedSize} -->
                     {#if false}
                         <div class="price-row">
-                            {#if !isAvailable(selectedSize)}
+                            {#if selectedSize && !isAvailable(selectedSize)}
                                 <span class="sold">
                                     {selectedSize.sold ? 'Sold' : 'Out of stock'}
                                 </span>
-                            {:else}
+                            {:else if selectedSize}
                                 <span class="price">{formatPrice(selectedSize.price_cents)}</span>
                                 <span class="stock">({selectedSize.quantity_in_stock} in stock)</span>
                             {/if}
@@ -198,7 +198,6 @@
     }
 
     .thumb.active { border-color: #111; }
-
     .info { padding-top: 0.5rem; }
 
     h1 {

@@ -105,7 +105,8 @@
                         {/each}
                     </div>
                 {/if}
-                {#if art.size || art.price_cents != null}
+                <!-- Price/size meta: re-enable by changing {#if false} to {#if art.size || art.price_cents != null} -->
+                {#if false}
                     <div class="art-meta">
                         {#if art.size}<span class="size">{art.size}"</span>{/if}
                         {#if art.sold}

@@ -39,6 +39,16 @@ type PrintModel struct {
 	Images      []ImageModel     `json:"images"`
 }
 
+type BannerModel struct {
+	Id         int    `db:"id" json:"id"`
+	ArtTileId  int    `db:"art_tile_id" json:"art_tile_id"`
+	Title      string `db:"title" json:"title"`
+	DisplayURL string `db:"display_url" json:"url"`
+	Portrait   bool   `db:"portrait" json:"portrait"`
+	SortOrder  int    `db:"sort_order" json:"sort_order"`
+	Active     bool   `db:"active" json:"active"`
+}
+
 type ArtDetailModel struct {
 	Id          int             `db:"id" json:"id"`
 	Title       string          `db:"title" json:"title"`

@@ -497,6 +497,104 @@ func (h *Handler) renderPrintSizeList(c *gin.Context, printID int) {
 	h.render(c, "print_size_list.html", gin.H{"PrintID": printID, "Sizes": sizes})
 }
 
+// ── Site Content ─────────────────────────────────────────────────────────────
+
+func (h *Handler) GetSiteContent(c *gin.Context) {
+	content, _ := h.repo.AdminAllSiteContent()
+	h.render(c, "site_content.html", gin.H{"Content": content})
+}
+
+func (h *Handler) PostSiteContent(c *gin.Context) {
+	key := c.Param("key")
+	value := c.PostForm("value")
+	if err := h.repo.AdminSetSiteContent(key, value); err != nil {
+		slog.Error("admin: set site content", "key", key, "error", err)
+	}
+	c.Redirect(http.StatusSeeOther, "/admin/content")
+}
+
+func (h *Handler) PostArtistPhoto(c *gin.Context) {
+	file, header, err := c.Request.FormFile("photo")
+	if err != nil {
+		c.String(http.StatusBadRequest, "no file uploaded")
+		return
+	}
+	defer file.Close()
+
+	if err := validateImageFile(file, header.Size); err != nil {
+		c.String(http.StatusBadRequest, err.Error())
+		return
+	}
+	file.Seek(0, io.SeekStart)
+
+	if h.gcsClient == nil {
+		c.String(http.StatusServiceUnavailable, "image storage not configured")
+		return
+	}
+
+	objectName := fmt.Sprintf("profile/artist-%d-%s", time.Now().UnixMilli(), header.Filename)
+	url, err := h.uploadToGCS(c.Request.Context(), objectName, file, header.Header.Get("Content-Type"))
+	if err != nil {
+		slog.Error("admin: gcs upload artist photo", "error", err)
+		c.String(http.StatusInternalServerError, "upload failed")
+		return
+	}
+
+	if err := h.repo.AdminSetSiteContent("artist_photo_url", url); err != nil {
+		slog.Error("admin: save artist photo url", "error", err)
+		c.String(http.StatusInternalServerError, "save failed")
+		return
+	}
+
+	c.Redirect(http.StatusSeeOther, "/admin/content")
+}
+
+// ── Banners ──────────────────────────────────────────────────────────────────
+
+func (h *Handler) GetBanners(c *gin.Context) {
+	banners, _ := h.repo.AdminAllBanners()
+	arts, _ := h.repo.AdminAllArt()
+	h.render(c, "banners.html", gin.H{"Banners": banners, "Arts": arts})
+}
+
+func (h *Handler) PostBannerAdd(c *gin.Context) {
+	artTileID := parseInt(c.PostForm("art_tile_id"), 0)
+	if artTileID == 0 {
+		c.Redirect(http.StatusSeeOther, "/admin/banners")
+		return
+	}
+	existing, _ := h.repo.AdminAllBanners()
+	if _, err := h.repo.AdminAddBanner(artTileID, len(existing)); err != nil {
+		slog.Error("admin: add banner", "error", err)
+		c.String(http.StatusInternalServerError, "failed to add banner")
+		return
+	}
+	c.Redirect(http.StatusSeeOther, "/admin/banners")
+}
+
+func (h *Handler) PostBannerDelete(c *gin.Context) {
+	id := paramInt(c, "id")
+	if err := h.repo.AdminDeleteBanner(id); err != nil {
+		c.String(http.StatusInternalServerError, "delete failed")
+		return
+	}
+	c.Redirect(http.StatusSeeOther, "/admin/banners")
+}
+
+func (h *Handler) PostBannerToggle(c *gin.Context) {
+	id := paramInt(c, "id")
+	active := c.PostForm("active") == "true"
+	h.repo.AdminToggleBannerActive(id, active)
+	c.Redirect(http.StatusSeeOther, "/admin/banners")
+}
+
+func (h *Handler) PostBannerOrder(c *gin.Context) {
+	id := paramInt(c, "id")
+	order := parseInt(c.PostForm("sort_order"), 0)
+	h.repo.AdminUpdateBannerOrder(id, order)
+	c.Redirect(http.StatusSeeOther, "/admin/banners")
+}
+
 // ── Categories ───────────────────────────────────────────────────────────────
 
 func (h *Handler) GetCategories(c *gin.Context) {
